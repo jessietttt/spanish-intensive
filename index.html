@@ -613,11 +613,20 @@ function RichTextEditor({value, onChange, placeholder}) {
   const editorRef = useRef(null);
   const [focused, setFocused] = useState(false);
 
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
-      editorRef.current.innerHTML = value;
-    }
+  // Convert plain text notes to HTML for backward compatibility
+  const htmlValue = useMemo(() => {
+    if (!value) return "";
+    // If it's already HTML (contains tags), return as-is
+    if (/<[^>]+>/.test(value)) return value;
+    // Otherwise convert plain text: wrap in paragraphs and preserve line breaks
+    return value.split('\n').filter(line => line.trim()).map(line => `<p>${line}</p>`).join('');
   }, [value]);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== htmlValue) {
+      editorRef.current.innerHTML = htmlValue;
+    }
+  }, [htmlValue]);
 
   const execCommand = (command, value = null) => {
     document.execCommand(command, false, value);
