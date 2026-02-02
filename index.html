@@ -583,6 +583,25 @@ const SEED = [
       ]}
     ],
     chatPrompt:"The big test: have a 10-minute free conversation with ChatGPT in Spanish. Talk about your life, your work, your food, your week — anything. Mix all tenses naturally. ChatGPT tracks which tenses you use and gives you a report at the end: what you nailed, what to revisit, and suggestions for month 2."
+  },
+  {
+    id:"ref-1", week:2, phase:"Reference", title:"Irregular Preterite Conjugations", icon:"📚", tags:["reference","preterite","irregular"],
+    type:"reference",
+    blocks:[
+      {t:"h2",v:"The most common irregular preterite verbs"},
+      {t:"p",v:"These don't follow the regular preterite pattern. They're essential because they're used constantly in everyday Spanish."},
+      {t:"table",verb:"ser / ir",eng:"to be / to go",kind:"Irregular Preterite",rows:[["yo","fui","I was/went"],["tú","fuiste","you were/went"],["él/ella","fue","he/she was/went"],["nosotros","fuimos","we were/went"],["ellos/ellas","fueron","they were/went"]]},
+      {t:"table",verb:"estar",eng:"to be",kind:"Irregular Preterite",rows:[["yo","estuve","I was"],["tú","estuviste","you were"],["él/ella","estuvo","he/she was"],["nosotros","estuvimos","we were"],["ellos/ellas","estuvieron","they were"]]},
+      {t:"table",verb:"tener",eng:"to have",kind:"Irregular Preterite",rows:[["yo","tuve","I had"],["tú","tuviste","you had"],["él/ella","tuvo","he/she had"],["nosotros","tuvimos","we had"],["ellos/ellas","tuvieron","they had"]]},
+      {t:"table",verb:"hacer",eng:"to do/make",kind:"Irregular Preterite",rows:[["yo","hice","I did/made"],["tú","hiciste","you did/made"],["él/ella","hizo","he/she did/made"],["nosotros","hicimos","we did/made"],["ellos/ellas","hicieron","they did/made"]]},
+      {t:"table",verb:"poder",eng:"to be able",kind:"Irregular Preterite",rows:[["yo","pude","I could"],["tú","pudiste","you could"],["él/ella","pudo","he/she could"],["nosotros","pudimos","we could"],["ellos/ellas","pudieron","they could"]]},
+      {t:"table",verb:"poner",eng:"to put",kind:"Irregular Preterite",rows:[["yo","puse","I put"],["tú","pusiste","you put"],["él/ella","puso","he/she put"],["nosotros","pusimos","we put"],["ellos/ellas","pusieron","they put"]]},
+      {t:"table",verb:"saber",eng:"to know",kind:"Irregular Preterite",rows:[["yo","supe","I knew/found out"],["tú","supiste","you knew"],["él/ella","supo","he/she knew"],["nosotros","supimos","we knew"],["ellos/ellas","supieron","they knew"]]},
+      {t:"table",verb:"venir",eng:"to come",kind:"Irregular Preterite",rows:[["yo","vine","I came"],["tú","viniste","you came"],["él/ella","vino","he/she came"],["nosotros","vinimos","we came"],["ellos/ellas","vinieron","they came"]]},
+      {t:"table",verb:"decir",eng:"to say",kind:"Irregular Preterite",rows:[["yo","dije","I said"],["tú","dijiste","you said"],["él/ella","dijo","he/she said"],["nosotros","dijimos","we said"],["ellos/ellas","dijeron","they said"]]},
+      {t:"table",verb:"traer",eng:"to bring",kind:"Irregular Preterite",rows:[["yo","traje","I brought"],["tú","trajiste","you brought"],["él/ella","trajo","he/she brought"],["nosotros","trajimos","we brought"],["ellos/ellas","trajeron","they brought"]]},
+      {t:"callout",variant:"tip",title:"Stem patterns",v:"Notice the patterns: tuv- (tuve), pud- (pude), pus- (puse), sup- (supe), vin- (vine). Once you memorize the stems, the endings are consistent: -e, -iste, -o, -imos, -ieron."}
+    ]
   }
 ];
 
@@ -733,14 +752,14 @@ function App() {
             {/* explanation blocks */}
             {(active.blocks||[]).map((b,i)=><ContentBlock key={i} b={b} />)}
 
-            {/* exercises */}
-            {active.exercises && active.exercises.length > 0 && <>
+            {/* exercises - only for lesson type */}
+            {active.type !== "reference" && active.exercises && active.exercises.length > 0 && <>
               <Divider label="✏️ Exercises" />
               {active.exercises.map((ex,i)=><ExBlock key={i} ex={ex} />)}
             </>}
 
-            {/* chat prompt */}
-            {active.chatPrompt && <>
+            {/* chat prompt - only for lesson type */}
+            {active.type !== "reference" && active.chatPrompt && <>
               <Divider label="💬 Conversation Practice" />
               <div style={{background:"linear-gradient(135deg, rgba(107,74,158,0.18), rgba(74,47,122,0.12))", border:"1px solid rgba(107,74,158,0.3)", borderRadius:12, padding:"1.35rem 1.4rem", marginBottom:"1.5rem"}}>
                 <p style={{color:"#b8b0a0", fontSize:"0.9rem", lineHeight:1.75, margin:"0 0 0.9rem"}}>{active.chatPrompt}</p>
@@ -932,8 +951,9 @@ function AddModal({onClose, onAdd, maxWeek}) {
   const [icon, setIcon] = useState("📖");
   const [tags, setTags] = useState("");
   const [prompt, setPrompt] = useState("");
+  const [type, setType] = useState("lesson");
 
-  const icons = ["📖","⚡","🔀","🔄","🛒","⏪","🌊","🔮","👉","🌀","🇲🇽","📝","💬","🎯","⭐","🏆"];
+  const icons = ["📖","⚡","🔀","🔄","🛒","⏪","🌊","🔮","👉","🌀","🇲🇽","📝","💬","🎯","⭐","🏆","📚"];
   const weekOptions = [...Array(maxWeek+2).keys()].slice(1);
 
   return (
@@ -944,8 +964,18 @@ function AddModal({onClose, onAdd, maxWeek}) {
           <button onClick={onClose} style={{background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:"1.4rem", lineHeight:1, padding:"0.1rem"}}>×</button>
         </div>
 
+        <Label>Type</Label>
+        <div style={{display:"flex", gap:"0.5rem", marginBottom:"0.9rem"}}>
+          <button onClick={()=>setType("lesson")} style={{background:type==="lesson"?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${type==="lesson"?"#E91E8C":"#2a2a2a"}`, color:type==="lesson"?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.35rem 0.8rem", cursor:"pointer", fontSize:"0.78rem", fontWeight:600, flex:1}}>
+            📖 Lesson
+          </button>
+          <button onClick={()=>setType("reference")} style={{background:type==="reference"?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${type==="reference"?"#E91E8C":"#2a2a2a"}`, color:type==="reference"?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.35rem 0.8rem", cursor:"pointer", fontSize:"0.78rem", fontWeight:600, flex:1}}>
+            📚 Reference
+          </button>
+        </div>
+
         <Label>Title</Label>
-        <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Stem-changing verbs"
+        <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder={type==="reference"?"e.g. Common Irregular Verbs":"e.g. Stem-changing verbs"}
           style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"0.9rem"}}/>
 
         <Label>Week</Label>
@@ -970,16 +1000,18 @@ function AddModal({onClose, onAdd, maxWeek}) {
         <input type="text" value={tags} onChange={e=>setTags(e.target.value)} placeholder="e.g. grammar, verbs, past tense"
           style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"0.9rem"}}/>
 
-        <Label>ChatGPT conversation prompt (optional)</Label>
-        <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="A practice scenario to paste into ChatGPT…"
-          style={{width:"100%", minHeight:75, background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.84rem", resize:"vertical", fontFamily:"'Work Sans',sans-serif", marginBottom:"1.1rem"}}/>
+        {type === "lesson" && <>
+          <Label>ChatGPT conversation prompt (optional)</Label>
+          <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="A practice scenario to paste into ChatGPT…"
+            style={{width:"100%", minHeight:75, background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.84rem", resize:"vertical", fontFamily:"'Work Sans',sans-serif", marginBottom:"1.1rem"}}/>
+        </>}
 
         <div style={{display:"flex", gap:"0.5rem"}}>
           <button onClick={()=>{
             if(!title.trim()) return;
-            onAdd({ id:`c-${Date.now()}`, week, phase:"Custom", title:title.trim(), icon, tags:tags.split(",").map(t=>t.trim()).filter(Boolean),
-              blocks:[{t:"h2",v:"Lesson notes"},{t:"p",v:"Use the notes section below to write explanations, vocabulary lists, and practice ideas as you work through this topic."}],
-              exercises:[], chatPrompt:prompt.trim()||null });
+            onAdd({ id:`c-${Date.now()}`, week, phase:"Custom", title:title.trim(), icon, tags:tags.split(",").map(t=>t.trim()).filter(Boolean), type,
+              blocks:[{t:"h2",v:type==="reference"?"Quick reference":"Lesson notes"},{t:"p",v:type==="reference"?"Add conjugation tables, vocabulary lists, or other reference material here.":"Use the notes section below to write explanations, vocabulary lists, and practice ideas as you work through this topic."}],
+              exercises:[], chatPrompt:type==="lesson"?(prompt.trim()||null):null });
           }} style={{background:"#E91E8C", border:"none", color:"#fff", borderRadius:7, padding:"0.52rem 1.3rem", cursor:"pointer", fontSize:"0.82rem", fontWeight:700, flex:1}}>
             Create Lesson
           </button>
