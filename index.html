@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spanish Intensive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body style="margin: 0; padding: 0;">
+  <div id="root"></div>
+  
+  <script type="text/babel">
+import { useState, useEffect, useRef } from "react";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   SEED DATA
+   Each lesson: blocks (explanation content), exercises (inline drills),
+   chatPrompt (copy-to-ChatGPT scenario). Add more via the "+ New Lesson" UI.
+───────────────────────────────────────────────────────────────────────────── */
+
+const SEED = [
+  {
+    id:"w1-1", week:1, phase:"Foundation", title:"Regular Present Tense", icon:"📖", tags:["grammar","verbs"],
+    blocks:[
+      {t:"h2",v:"The three verb families"},
+      {t:"p",v:"Spanish verbs fall into three groups by their infinitive ending. Each conjugates slightly differently — but the pattern is very regular once you see it."},
+      {t:"table",verb:"hablar",eng:"to speak",kind:"-AR",rows:[["yo","hablo","I speak"],["tú","hablas","you speak"],["él/ella","habla","he/she speaks"],["nosotros","hablamos","we speak"],["ellos/ellas","hablan","they speak"]]},
+      {t:"table",verb:"comer",eng:"to eat",kind:"-ER",rows:[["yo","como","I eat"],["tú","comes","you eat"],["él/ella","come","he/she eats"],["nosotros","comemos","we eat"],["ellos/ellas","comen","they eat"]]},
+      {t:"table",verb:"vivir",eng:"to live",kind:"-IR",rows:[["yo","vivo","I live"],["tú","vives","you live"],["él/ella","vive","he/she lives"],["nosotros","vivimos","we live"],["ellos/ellas","viven","they live"]]},
+      {t:"callout",variant:"mx",title:"Guadalajara pronunciation",v:"The 's' in Mexican Spanish is softer than peninsular. In Guadalajara the accent is relatively neutral — this works in your favour while learning."},
+      {t:"h2",v:"Verbs to memorise this week"},
+      {t:"words",items:[
+        {es:"hablar",en:"to speak",note:"most common -AR"},
+        {es:"comer",en:"to eat",note:"most common -ER"},
+        {es:"vivir",en:"to live",note:"most common -IR"},
+        {es:"trabajar",en:"to work",note:"-AR"},
+        {es:"comprar",en:"to buy",note:"essential for shopping"},
+        {es:"estudiar",en:"to study",note:"-AR"},
+        {es:"necesitar",en:"to need",note:"daily use"},
+        {es:"escribir",en:"to write",note:"-IR"},
+        {es:"tomar",en:"to take / drink",note:"\"tomar café\""},
+        {es:"usar",en:"to use",note:"-AR"}
+      ]}
+    ],
+    exercises:[
+      {t:"fill",label:"Conjugate the verb in brackets",items:[
+        {sub:"yo",verb:"hablar",ans:"hablo",before:"Yo ",after:" español todos los días."},
+        {sub:"tú",verb:"comer",ans:"comes",before:"Tú ",after:" en el mercado."},
+        {sub:"él",verb:"vivir",ans:"vive",before:"Él ",after:" en Guadalajara."},
+        {sub:"nosotros",verb:"trabajar",ans:"trabajamos",before:"Nosotros ",after:" desde casa."},
+        {sub:"ellas",verb:"comprar",ans:"compran",before:"Ellas ",after:" flores cada viernes."},
+        {sub:"yo",verb:"necesitar",ans:"necesito",before:"Yo ",after:" un café por la mañana."}
+      ]},
+      {t:"translate",label:"Translate into Spanish",items:[
+        {en:"I speak Spanish every day.",ans:"Yo hablo español todos los días."},
+        {en:"You eat at the café.",ans:"Tú comes en el café."},
+        {en:"She lives in Guadalajara.",ans:"Ella vive en Guadalajara."},
+        {en:"We need water.",ans:"Nosotros necesitamos agua."}
+      ]}
+    ],
+    chatPrompt:"You are at a café in Guadalajara ordering breakfast. Practice present tense. The barista (ChatGPT) takes your order. Use: querer, tomar, preferir, necesitar. Start: \"Buenos días, quisiera...\""
+  },
+  {
+    id:"w1-2", week:1, phase:"Foundation", title:"Ser vs. Estar", icon:"⚡", tags:["grammar","verbs","essential"],
+    blocks:[
+      {t:"h2",v:"Two words for \"to be\" — why?"},
+      {t:"p",v:"English has one \"to be.\" Spanish has two: ser and estar. This trips up most English speakers at first, but once you see the logic it clicks fast."},
+      {t:"callout",variant:"tip",title:"The core rule",v:"SER = who or what something fundamentally IS. ESTAR = how something currently IS."},
+      {t:"h2",v:"SER — permanent or defining"},
+      {t:"words",items:[
+        {es:"Soy australiana.",en:"I am Australian.",note:"origin — defining"},
+        {es:"Mi esposa es ceramista.",en:"My wife is a ceramicist.",note:"profession"},
+        {es:"Son las tres.",en:"It's three o'clock.",note:"time — always ser"},
+        {es:"Es de Guadalajara.",en:"He's from Guadalajara.",note:"origin"},
+        {es:"Es alta y de ojos oscuros.",en:"She is tall, dark eyes.",note:"physical traits"}
+      ]},
+      {t:"h2",v:"ESTAR — temporary or situational"},
+      {t:"words",items:[
+        {es:"Estoy en Guadalajara.",en:"I am in Guadalajara.",note:"location — always estar"},
+        {es:"Estoy cansada.",en:"I am tired.",note:"temporary feeling"},
+        {es:"La comida está rica.",en:"The food is delicious.",note:"condition right now"},
+        {es:"Estoy lista.",en:"I am ready.",note:"temporary state"},
+        {es:"El café está caliente.",en:"The coffee is hot.",note:"current condition"}
+      ]},
+      {t:"callout",variant:"mx",title:"In Mexican Spanish",v:"Estar dominates casual speech for feelings and conditions. You'll hear \"está muy padre\" (it's really cool) constantly. Lean into estar."}
+    ],
+    exercises:[
+      {t:"ser_estar",label:"Choose ser or estar — then see why",items:[
+        {before:"Yo ",after:" australiana.",ans:"soy",why:"Origin / nationality — permanent, defining."},
+        {before:"Ella ",after:" en el gimnasio.",ans:"está",why:"Location — where she is right now."},
+        {before:"El libro ",after:" interesante.",ans:"es",why:"Inherent quality of the book."},
+        {before:"Yo ",after:" cansada hoy.",ans:"estoy",why:"Temporary feeling — only today."},
+        {before:"Mi esposo ",after:" mexicano.",ans:"es",why:"Nationality — permanent, defining."},
+        {before:"La puerta ",after:" abierta.",ans:"está",why:"Current state — someone opened it."},
+        {before:"Son las cinco.",after:"",ans:"son",why:"Time — always ser."},
+        {before:"Nosotros ",after:" hambrientos.",ans:"estamos",why:"Temporary feeling right now."}
+      ]}
+    ],
+    chatPrompt:"Describe yourself, Sofia, your Guadalajara home, and how you're feeling right now — using both ser and estar. ChatGPT corrects mistakes and explains why."
+  },
+  {
+    id:"w1-3", week:1, phase:"Foundation", title:"Irregular Present Verbs", icon:"🔀", tags:["grammar","verbs","irregular"],
+    blocks:[
+      {t:"h2",v:"The big irregulars — memorise these"},
+      {t:"p",v:"These don't follow the regular pattern. But they're so common you'll hear them dozens of times a day. Worth brute-forcing into memory."},
+      {t:"table",verb:"tener",eng:"to have",kind:"Irregular",rows:[["yo","tengo","I have"],["tú","tienes","you have"],["él/ella","tiene","he/she has"],["nosotros","tenemos","we have"],["ellos/ellas","tienen","they have"]]},
+      {t:"table",verb:"hacer",eng:"to do / make",kind:"Irregular",rows:[["yo","hago","I do/make"],["tú","haces","you do/make"],["él/ella","hace","he/she does"],["nosotros","hacemos","we do"],["ellos/ellas","hacen","they do"]]},
+      {t:"table",verb:"ir",eng:"to go",kind:"Irregular",rows:[["yo","voy","I go"],["tú","vas","you go"],["él/ella","va","he/she goes"],["nosotros","vamos","we go"],["ellos/ellas","van","they go"]]},
+      {t:"table",verb:"decir",eng:"to say",kind:"Irregular",rows:[["yo","digo","I say"],["tú","dices","you say"],["él/ella","dice","he/she says"],["nosotros","decimos","we say"],["ellos/ellas","dicen","they say"]]},
+      {t:"callout",variant:"tip",title:"The -go pattern",v:"Notice: tengo, hago, digo — most irregular verbs have an irregular YO form ending in -go. The rest often follow regular patterns. Focus on the yo form first."},
+      {t:"h2",v:"Mexican expressions using these"},
+      {t:"words",items:[
+        {es:"Tengo ganas de…",en:"I feel like doing…",note:"very common"},
+        {es:"Hacer falta",en:"to need / be missing",note:"me hace falta agua"},
+        {es:"Ir a + infinitive",en:"going to (near future)",note:"Voy a comer"},
+        {es:"¿Qué haces?",en:"What are you doing?",note:"daily question"}
+      ]}
+    ],
+    exercises:[
+      {t:"fill",label:"Fill in the correct irregular form",items:[
+        {sub:"yo",verb:"tener",ans:"tengo",before:"Yo ",after:" un café en la mano."},
+        {sub:"tú",verb:"hacer",ans:"haces",before:"¿Qué ",after:" esta tarde?"},
+        {sub:"nosotros",verb:"ir",ans:"vamos",before:"Nosotros ",after:" al mercado."},
+        {sub:"él",verb:"decir",ans:"dice",before:"Él ",after:" que está hambriento."},
+        {sub:"ella",verb:"tener",ans:"tiene",before:"Ella ",after:" una reunión a las tres."},
+        {sub:"ellos",verb:"ir",ans:"van",before:"Ellos ",after:" a la playa mañana."}
+      ]}
+    ],
+    chatPrompt:"15-min conversation with ChatGPT (as Sofia) about your week's plans. Focus on: ir, tener, hacer, querer, necesitar. Start: \"¿Qué vamos a hacer esta semana?\""
+  },
+  {
+    id:"w1-4", week:1, phase:"Foundation", title:"Mexicanismos & Slang", icon:"🇲🇽", tags:["vocabulary","culture","mexican"],
+    blocks:[
+      {t:"h2",v:"Sound like you actually live here"},
+      {t:"p",v:"These are everywhere in Guadalajara. Using them correctly is the difference between sounding like a textbook and sounding like someone who belongs."},
+      {t:"words",items:[
+        {es:"Órale",en:"Wow / Come on / Alright",note:"tone changes the meaning entirely"},
+        {es:"¿Qué onda?",en:"What's up?",note:"casual greeting"},
+        {es:"Ahorita",en:"Right now (ish)",note:"could be 2 min or 30 min"},
+        {es:"¿Mande?",en:"Pardon?",note:"very polite, very Mexican — use it!"},
+        {es:"Qué padre",en:"How cool",note:"padre = father, slang = cool"},
+        {es:"Sale",en:"OK / Sounds good",note:"casual agreement"},
+        {es:"Va",en:"Alright / Done",note:"slightly more chill than sale"},
+        {es:"No manches",en:"No way / You're kidding",note:"mild — safe to use"},
+        {es:"Ándale",en:"Come on / Hurry / Exactly!",note:"context-dependent"},
+        {es:"Chido/a",en:"Cool / Nice",note:"young / casual register"}
+      ]},
+      {t:"h2",v:"Diminutives — -ito / -ita"},
+      {t:"p",v:"Mexicans use diminutives constantly — not just for small things, but for affection and softening. \"Un momentito\" feels warmer than \"un momento\". It's one of the easiest upgrades you can make."},
+      {t:"words",items:[
+        {es:"un momentito",en:"just a moment (softer)",note:""},
+        {es:"un poquito",en:"a little bit",note:""},
+        {es:"cerquita",en:"nearby (close-ish)",note:"cerca → cerquita"},
+        {es:"ratito",en:"a little while",note:"espérate un ratito"}
+      ]}
+    ],
+    exercises:[
+      {t:"translate",label:"How would a Mexican say this?",items:[
+        {en:"What's up? (casual greeting to a friend)",ans:"¿Qué onda?"},
+        {en:"Pardon? (politely — you didn't catch it)",ans:"¿Mande?"},
+        {en:"That's so cool!",ans:"¡Qué padre!"},
+        {en:"OK, sounds good (casually)",ans:"¡Sale!"},
+        {en:"No way! (mild surprise)",ans:"¡No manches!"},
+        {en:"Alright, I'll be there",ans:"¡Va!"}
+      ]}
+    ],
+    chatPrompt:"Casual convo with ChatGPT using as many mexicanismos as you can. Greet with \"¿Qué onda?\", weave in \"órale\", \"sale\", \"ahorita\". ChatGPT flags any incorrect usage."
+  },
+  {
+    id:"w2-1", week:2, phase:"Foundation", title:"Preterite Tense", icon:"⏪", tags:["grammar","past tense"],
+    blocks:[
+      {t:"h2",v:"Completed actions in the past"},
+      {t:"p",v:"The preterite is for actions that happened, started, or ended at a specific point. \"I ate breakfast. I went to the market. The film finished at 10.\""},
+      {t:"table",verb:"hablar",eng:"to speak (past)",kind:"Preterite -AR",rows:[["yo","hablé","I spoke"],["tú","hablaste","you spoke"],["él/ella","habló","he/she spoke"],["nosotros","hablamos","we spoke"],["ellos/ellas","hablaron","they spoke"]]},
+      {t:"table",verb:"comer",eng:"to eat (past)",kind:"Preterite -ER/-IR",rows:[["yo","comí","I ate"],["tú","comiste","you ate"],["él/ella","comió","he/she ate"],["nosotros","comimos","we ate"],["ellos/ellas","comieron","they ate"]]},
+      {t:"callout",variant:"tip",title:"Time markers that signal preterite",v:"ayer (yesterday), anoche (last night), la semana pasada (last week), hace dos días (two days ago). See one of these → it's preterite."},
+      {t:"h2",v:"High-frequency irregular preterites"},
+      {t:"words",items:[
+        {es:"ir / ser → fui, fuiste, fue, fuimos, fueron",en:"went / was",note:"same conjugation for both!"},
+        {es:"hacer → hice, hiciste, hizo, hicimos, hicieron",en:"did / made",note:"hizo not hico!"},
+        {es:"tener → tuve, tuviste, tuvo, tuvimos, tuvieron",en:"had",note:""},
+        {es:"estar → estuve, estuviste, estuvo…",en:"was (location)",note:""}
+      ]}
+    ],
+    exercises:[
+      {t:"fill",label:"Put the verb in preterite",items:[
+        {sub:"yo",verb:"hablar",ans:"hablé",before:"Ayer yo ",after:" con mi esposa."},
+        {sub:"tú",verb:"comer",ans:"comiste",before:"¿Qué ",after:" anoche?"},
+        {sub:"él",verb:"ir",ans:"fue",before:"Él ",after:" al mercado ayer."},
+        {sub:"nosotros",verb:"hacer",ans:"hicimos",before:"Nosotros ",after:" una torta la semana pasada."},
+        {sub:"ella",verb:"tener",ans:"tuvo",before:"Ella ",after:" una reunión ayer."}
+      ]}
+    ],
+    chatPrompt:"Tell ChatGPT about your week in preterite. What did you do? Where did you go? What did you eat? Use: \"ayer\", \"la semana pasada\", \"hace dos días\"."
+  },
+  {
+    id:"w2-2", week:2, phase:"Foundation", title:"Imperfect Tense", icon:"🌊", tags:["grammar","past tense"],
+    blocks:[
+      {t:"h2",v:"Ongoing actions, descriptions, habits"},
+      {t:"p",v:"Preterite is a snapshot — one completed action. Imperfect is a film reel. It's for what was happening, what used to happen, or how things were."},
+      {t:"table",verb:"hablar",eng:"to speak (imperfect)",kind:"Imperfect -AR",rows:[["yo","hablaba","I used to speak"],["tú","hablabas","you used to speak"],["él/ella","hablaba","he/she used to speak"],["nosotros","hablábamos","we used to speak"],["ellos/ellas","hablaban","they used to speak"]]},
+      {t:"table",verb:"comer",eng:"to eat (imperfect)",kind:"Imperfect -ER/-IR",rows:[["yo","comía","I used to eat"],["tú","comías","you used to eat"],["él/ella","comía","he/she used to eat"],["nosotros","comíamos","we used to eat"],["ellos/ellas","comían","they used to eat"]]},
+      {t:"callout",variant:"tip",title:"Only 3 irregulars in the whole tense",v:"ser → era, eras, era, éramos, eran. ir → iba, ibas, iba, íbamos, iban. ver → veía, veías, veía, veíamos, veían. Everything else is completely regular."},
+      {t:"callout",variant:"mx",title:"The quick test",v:"Single completed action? Preterite. Ongoing / habitual / descriptive? Imperfect. \"Ayer yo comí en el café\" (ate — done) vs \"De niña yo comía en el café\" (used to eat — habit)."}
+    ],
+    exercises:[
+      {t:"fill",label:"Choose preterite or imperfect and conjugate",items:[
+        {sub:"yo",verb:"hablar",ans:"hablaba",before:"Cuando era pequeña, yo ",after:" inglés."},
+        {sub:"nosotros",verb:"ir",ans:"íbamos",before:"Cada domingo, nosotros ",after:" a la playa."},
+        {sub:"ella",verb:"ser",ans:"era",before:"Mi madre ",after:" muy buena cocinera."},
+        {sub:"ellos",verb:"vivir",ans:"vivían",before:"Ellos ",after:" en un departamento pequeño."}
+      ]}
+    ],
+    chatPrompt:"Tell ChatGPT about your life in Japan — what was it like? Use imperfect for descriptions and habits. \"Vivía en…\", \"Comía…\", \"Trabajaba…\""
+  },
+
+  // ─── WEEK 3 ───
+
+  {
+    id:"w3-1", week:3, phase:"Expansion", title:"Future Tense", icon:"🔮", tags:["grammar","future","verbs"],
+    blocks:[
+      {t:"h2",v:"Talking about what's coming"},
+      {t:"p",v:"The future tense is one of the easiest to learn — it's built directly onto the infinitive. No stem changes for regular verbs. You just add the same endings to every -ar, -er, and -ir verb."},
+      {t:"table",verb:"hablar",eng:"to speak (future)",kind:"Future -AR/-ER/-IR",rows:[["yo","hablaré","I will speak"],["tú","hablarás","you will speak"],["él/ella","hablará","he/she will speak"],["nosotros","hablaremos","we will speak"],["ellos/ellas","hablarán","they will speak"]]},
+      {t:"callout",variant:"tip",title:"The endings are the same for ALL verbs",v:"Take the infinitive → add é, ás, á, emos, án. That's it. comerá, vivirá, trabajará — same pattern every time."},
+      {t:"h2",v:"Near future: ir a + infinitive"},
+      {t:"p",v:"But here's the thing — in everyday Mexican Spanish, you almost never use the formal future tense for near-future plans. You use \"ir a + infinitive\" instead. This is what you'll actually hear and use daily."},
+      {t:"words",items:[
+        {es:"Voy a cocinar esta noche.",en:"I'm going to cook tonight.",note:"near future — most natural"},
+        {es:"Vamos a ir al mercado.",en:"We're going to go to the market.",note:"plan with someone"},
+        {es:"¿Vas a estudiar hoy?",en:"Are you going to study today?",note:"casual question"},
+        {es:"Están a punto de llegar.",en:"They're about to arrive.",note:"even more immediate"}
+      ]},
+      {t:"h2",v:"When to use the formal future"},
+      {t:"words",items:[
+        {es:"Algún día aprenderé.",en:"Someday I will learn.",note:"distant / hypothetical"},
+        {es:"Mañana lloverá.",en:"It will rain tomorrow.",note:"weather / predictions"},
+        {es:"Te encantará.",en:"You will love it.",note:"certainty about future"},
+        {es:"¿Quién sabe qué pasará?",en:"Who knows what will happen?",note:"uncertainty"}
+      ]},
+      {t:"h2",v:"Irregular futures — memorise these 3"},
+      {t:"words",items:[
+        {es:"tener → tendrá",en:"will have",note:"tendr- stem"},
+        {es:"poder → podrá",en:"will be able to",note:"podr- stem"},
+        {es:"querer → querrá",en:"will want",note:"querr- stem"}
+      ]},
+      {t:"callout",variant:"mx",title:"In Guadalajara",v:"\"Ir a\" dominates. You'll hear \"voy a ir\", \"vamos a comer\", \"va a ser muy padre\" constantly. Save the formal future for predictions and hypotheticals."}
+    ],
+    exercises:[
+      {t:"fill",label:"Fill in the future tense (formal)",items:[
+        {sub:"yo",verb:"hablar",ans:"hablaré",before:"Algún día yo ",after:" español perfecto."},
+        {sub:"tú",verb:"estudiar",ans:"estudiarás",before:"Mañana tú ",after:" por la mañana."},
+        {sub:"él",verb:"trabajar",ans:"trabajará",before:"Él ",after:" desde casa la próxima semana."},
+        {sub:"nosotros",verb:"viajar",ans:"viajaremos",before:"Nosotros ",after:" a la costa en marzo."},
+        {sub:"ellas",verb:"llegar",ans:"llegarán",before:"Ellas ",after:" a las cinco."}
+      ]},
+      {t:"translate",label:"Use \"ir a\" for these near-future plans",items:[
+        {en:"I'm going to eat tacos tonight.",ans:"Voy a comer tacos esta noche."},
+        {en:"We're going to go to the pool tomorrow.",ans:"Vamos a ir a la alberca mañana."},
+        {en:"Are you going to work this weekend?",ans:"¿Vas a trabajar este fin de semana?"},
+        {en:"Sofia is going to cook dinner.",ans:"Sofia va a cocinar la cena."}
+      ]}
+    ],
+    chatPrompt:"Plan your next week with ChatGPT. Use \"ir a\" for your actual plans and the formal future for bigger dreams. Mix both naturally. ChatGPT plays a friend asking \"¿Qué vas a hacer esta semana?\""
+  },
+  {
+    id:"w3-2", week:3, phase:"Expansion", title:"Subjunctive: The Gateway", icon:"🌊", tags:["grammar","subjunctive","advanced"],
+    blocks:[
+      {t:"h2",v:"Why the subjunctive matters"},
+      {t:"p",v:"The subjunctive is the mood that separates \"functional Spanish\" from \"fluent Spanish.\" It sounds intimidating, but the core idea is simple: use it when you're expressing a wish, emotion, doubt, or recommendation about something that hasn't happened yet."},
+      {t:"callout",variant:"tip",title:"The one-sentence rule",v:"If the sentence has two different subjects connected by \"que\", and the first subject expresses a wish, emotion, or doubt — the second verb goes subjunctive."},
+      {t:"h2",v:"Present subjunctive — regular forms"},
+      {t:"table",verb:"hablar",eng:"to speak (subjunctive)",kind:"Subjunctive",rows:[["yo","hable","I speak (wish)"],["tú","hables","you speak (wish)"],["él/ella","hable","he/she speaks (wish)"],["nosotros","hablemos","we speak (wish)"],["ellos/ellas","hablen","they speak (wish)"]]},
+      {t:"p",v:"Notice: the -AR verbs flip to -E endings, and -ER/-IR verbs flip to -A endings. It's like each verb family borrows the other's present tense endings."},
+      {t:"h2",v:"The WEIRDO triggers"},
+      {t:"p",v:"Subjunctive kicks in after verbs and expressions in these categories:"},
+      {t:"words",items:[
+        {es:"Wishes",en:"querer que, desear que, esperar que",note:"I want that, I hope that"},
+        {es:"Emotions",en:"estar feliz de que, temer que, alegrarse de que",note:"happy that, afraid that"},
+        {es:"Impersonal expressions",en:"es importante que, es necesario que, es mejor que",note:"it's important/necessary"},
+        {es:"Recommendations",en:"recomendar que, sugerir que, pedir que",note:"recommend/suggest/ask that"},
+        {es:"Doubt/Denial",en:"dudar que, no creer que, no es verdad que",note:"doubt, don't believe"}
+      ]},
+      {t:"h2",v:"Real examples you'll actually use"},
+      {t:"words",items:[
+        {es:"Quiero que probemos el mole.",en:"I want us to try the mole.",note:"wish — two subjects"},
+        {es:"Es importante que llegues a tiempo.",en:"It's important that you arrive on time.",note:"impersonal + subjunctive"},
+        {es:"Me alegra que estés aquí.",en:"I'm glad you're here.",note:"emotion"},
+        {es:"Espero que les guste la comida.",en:"I hope they like the food.",note:"hope = wish"},
+        {es:"Te recomiendo que pruebes el aguachile.",en:"I recommend you try the aguachile.",note:"recommendation"}
+      ]},
+      {t:"callout",variant:"mx",title:"The most common subjunctive you'll hear",v:"\"Espero que...\" (I hope that...) is everywhere in Mexican conversation. \"Espero que estés bien\", \"Espero que te guste\". Start there — it covers 30% of daily subjunctive use."}
+    ],
+    exercises:[
+      {t:"fill",label:"Choose indicative or subjunctive — then conjugate",items:[
+        {sub:"subjunctive",verb:"hablar",ans:"hable",before:"Quiero que ella ",after:" español conmigo."},
+        {sub:"indicative",verb:"hablar",ans:"habla",before:"Ella ",after:" español muy bien."},
+        {sub:"subjunctive",verb:"llegar",ans:"llegue",before:"Es importante que tú ",after:" a tiempo."},
+        {sub:"subjunctive",verb:"probar",ans:"probemos",before:"Espero que nosotros ",after:" el nuevo plato."},
+        {sub:"subjunctive",verb:"estar",ans:"estén",before:"Me alegra que ellos ",after:" contentos."}
+      ]},
+      {t:"translate",label:"Translate using the subjunctive",items:[
+        {en:"I want you to try this.",ans:"Quiero que lo pruebes."},
+        {en:"It's important that we eat well.",ans:"Es importante que comamos bien."},
+        {en:"I hope Sofia likes it.",ans:"Espero que Sofia lo guste."},
+        {en:"I recommend that you order the fish.",ans:"Te recomiendo que pidas el pescado."}
+      ]}
+    ],
+    chatPrompt:"Practice subjunctive with ChatGPT. Make recommendations about restaurants, express hopes about the weekend, and ask for suggestions. Key starters: \"Espero que...\", \"Te recomiendo que...\", \"Es importante que...\""
+  },
+  {
+    id:"w3-3", week:3, phase:"Expansion", title:"Commands: Tú & Nosotros", icon:"👉", tags:["grammar","commands","practical"],
+    blocks:[
+      {t:"h2",v:"Telling people what to do (politely)"},
+      {t:"p",v:"Commands are essential for daily life — ordering at restaurants, making plans with friends, directing a taxi driver. The tú command (informal) and nosotros command (\"let's do...\") are the two you'll use most."},
+      {t:"h2",v:"Tú commands — positive"},
+      {t:"p",v:"For regular verbs, the positive tú command is just the él/ella present tense form. Drop the subject, keep the verb."},
+      {t:"words",items:[
+        {es:"Habla más despacio.",en:"Speak more slowly.",note:"él form = habla"},
+        {es:"Come esto.",en:"Eat this.",note:"él form = come"},
+        {es:"Escucha.",en:"Listen.",note:"él form = escucha"},
+        {es:"Espérate un momento.",en:"Wait a moment.",note:"reflexive — pronoun goes after"}
+      ]},
+      {t:"h2",v:"Tú commands — the 8 irregulars"},
+      {t:"words",items:[
+        {es:"di",en:"say (decir)",note:"¡Dime! = Tell me!"},
+        {es:"haz",en:"do/make (hacer)",note:"¡Hazlo! = Do it!"},
+        {es:"ve",en:"go (ir)",note:"¡Ve al mercado!"},
+        {es:"ten",en:"have (tener)",note:"¡Tenla! = Have it!"},
+        {es:"pon",en:"put (poner)",note:"¡Ponlo aquí!"},
+        {es:"sal",en:"leave (salir)",note:"¡Sal! = Get out!"},
+        {es:"ven",en:"come (venir)",note:"¡Ven conmigo!"},
+        {es:"sé",en:"be (ser)",note:"¡Sé paciente!"}
+      ]},
+      {t:"h2",v:"Nosotros commands — \"let's...\""},
+      {t:"p",v:"Take the nosotros present tense form and change the final -s to nothing. Or even simpler: just use the present tense nosotros form directly with the right intonation."},
+      {t:"words",items:[
+        {es:"¡Vamos a comer!",en:"Let's go eat!",note:"ir a is more natural here"},
+        {es:"¡Comamos algo!",en:"Let's eat something!",note:"formal nosotros command"},
+        {es:"¡Hagamos una reserva!",en:"Let's make a reservation!",note:"irregular: hagamos"},
+        {es:"¡Sentémonos aquí!",en:"Let's sit here!",note:"reflexive — pronoun attached"}
+      ]},
+      {t:"callout",variant:"mx",title:"Mexican shortcut",v:"In casual Mexican Spanish, \"vamos a + infinitive\" replaces most nosotros commands. \"¡Vamos a ir!\", \"¡Vamos a tomar un café!\" It's more natural than the formal command form."}
+    ],
+    exercises:[
+      {t:"fill",label:"Write the tú command",items:[
+        {sub:"tú",verb:"hablar",ans:"Habla",before:"",after:" más despacio, por favor."},
+        {sub:"tú",verb:"ir",ans:"Ve",before:"",after:" al mercado ahora."},
+        {sub:"tú",verb:"hacer",ans:"Haz",before:"",after:" la reserva para esta noche."},
+        {sub:"tú",verb:"decir",ans:"Dime",before:"",after:" qué quieres comer."},
+        {sub:"tú",verb:"venir",ans:"Ven",before:"",after:" conmigo al parque."},
+        {sub:"tú",verb:"comer",ans:"Come",before:"",after:" algo antes de salir."}
+      ]},
+      {t:"translate",label:"Translate these commands",items:[
+        {en:"Listen to me!",ans:"¡Escúchame!"},
+        {en:"Put it here.",ans:"Ponlo aquí."},
+        {en:"Let's go to the beach!",ans:"¡Vamos a ir a la playa!"},
+        {en:"Tell me what happened.",ans:"Dime qué pasó."}
+      ]}
+    ],
+    chatPrompt:"You're planning a dinner out with ChatGPT (as a friend). Practice giving commands: \"Ven a mi casa a las 7\", \"Busca un lugar cerca del centro\". Also practice \"vamos a...\" for joint decisions."
+  },
+  {
+    id:"w3-4", week:3, phase:"Expansion", title:"Mexicanismos Level 2", icon:"🌶️", tags:["vocabulary","culture","mexican","advanced"],
+    blocks:[
+      {t:"h2",v:"Beyond the basics — expressions that show you get it"},
+      {t:"p",v:"Week 1 gave you the essentials. These are the expressions that make people actually comfortable talking to you — the ones that show you're not just visiting, you live here."},
+      {t:"h2",v:"Reactions & fillers"},
+      {t:"words",items:[
+        {es:"¡Qué onda!",en:"What's up! (greeting, not question)",note:"said fast, not really asking"},
+        {es:"¡Eso es!",en:"That's it! / Exactly!",note:"agreement / confirmation"},
+        {es:"Pues…",en:"Well… / So…",note:"universal filler — use constantly"},
+        {es:"Bueno…",en:"Well… / OK…",note:"softer than \"pues\""},
+        {es:"¡Órale!",en:"Wow! / Right on! / Come on!",note:"tone = everything. Practice this one."},
+        {es:"Ya, ya…",en:"OK, OK… / Yeah, yeah…",note:"casual acknowledgement"}
+      ]},
+      {t:"h2",v:"Time & scheduling (very practical)"},
+      {t:"words",items:[
+        {es:"Ahorita mismo",en:"Right this second",note:"ahorita = ish. ahorita mismo = NOW"},
+        {es:"Tantito",en:"Just a little bit / A tiny moment",note:"\"espérate tantito\""},
+        {es:"Al ratito",en:"In a little while",note:"vague — could be 5 min or an hour"},
+        {es:"De un momento a otro",en:"Any moment now",note:"imminence"},
+        {es:"Ya mero",en:"Almost / Nearly there",note:"\"ya mero llego\" = almost arriving"}
+      ]},
+      {t:"h2",v:"Food & drink (essential for NOMI life)"},
+      {t:"words",items:[
+        {es:"¡Está muy rico!",en:"It's delicious!",note:"the default food compliment"},
+        {es:"Está buenísimo",en:"It's amazing (food)",note:"superlative — bueno +ísimo"},
+        {es:"Está un poco salado",en:"It's a bit salty",note:"constructive feedback, polite"},
+        {es:"Me antojo…",en:"I'm craving…",note:"\"me antojo un taco\""},
+        {es:"¿Gustan? / ¿Les gustan?",en:"Would you like some? (offering food)",note:"very Mexican hospitality"}
+      ]},
+      {t:"h2",v:"Softening & politeness (the real secret)"},
+      {t:"words",items:[
+        {es:"No más / Nomás",en:"Just / Only / That's enough",note:"\"nomás un poquito\" = just a little"},
+        {es:"¿Me hace un favor?",en:"Can you do me a favor?",note:"before any request — always"},
+        {es:"Con permiso",en:"Excuse me (passing someone)",note:"more common than \"perdón\""},
+        {es:"Ándale pues",en:"Alright then / Go ahead",note:"relaxed agreement"}
+      ]},
+      {t:"callout",variant:"mx",title:"The art of \"pues\"",v:"\"Pues\" is the most Mexican word in the language. It fills every pause. \"Pues... sí\", \"Pues... no sé\", \"Pues... bueno\". Drop it into sentences and you'll instantly sound more local."}
+    ],
+    exercises:[
+      {t:"translate",label:"How would you say this in Mexican Spanish?",items:[
+        {en:"I'm craving tacos.",ans:"Me antojo un taco."},
+        {en:"Almost there! (you're arriving)",ans:"¡Ya mero!"},
+        {en:"Would you like some? (offering food)",ans:"¿Gustan?"},
+        {en:"Can you do me a favor?",ans:"¿Me hace un favor?"},
+        {en:"Just a little bit more.",ans:"Nomás un poquito más."},
+        {en:"Well... I don't know.",ans:"Pues... no sé."}
+      ]}
+    ],
+    chatPrompt:"Have a fully casual conversation with ChatGPT in Mexican Spanish. Use \"pues\" as a filler, offer food with \"¿gustan?\", react with \"¡órale!\". ChatGPT flags anything that sounds too textbook — aim for natural Guadalajara flow."
+  },
+
+  // ─── WEEK 4 ───
+
+  {
+    id:"w4-1", week:4, phase:"Integration", title:"Ordering & Restaurants", icon:"🍽️", tags:["conversation","food","practical"],
+    blocks:[
+      {t:"h2",v:"The full restaurant experience — start to finish"},
+      {t:"p",v:"You know the grammar. Now let's put it together for the scenario you'll actually use most: eating out in Guadalajara. From walking in to paying the bill."},
+      {t:"h2",v:"Getting a table"},
+      {t:"words",items:[
+        {es:"¿Tienen mesa para dos?",en:"Do you have a table for two?",note:"simplest opener"},
+        {es:"Tenemos reserva a nombre de Jessie.",en:"We have a reservation under Jessie.",note:"if you've booked"},
+        {es:"¿Podemos sentarnos aquí?",en:"Can we sit here?",note:"if you have a preference"},
+        {es:"Preferimos una mesa afuera.",en:"We prefer a table outside.",note:"stating preference"}
+      ]},
+      {t:"h2",v:"Ordering"},
+      {t:"words",items:[
+        {es:"¿Qué recomienda?",en:"What do you recommend?",note:"usted form — more formal"},
+        {es:"¿Qué es lo más popular?",en:"What's the most popular?",note:"safe question anywhere"},
+        {es:"Me gustaría probar el…",en:"I'd like to try the…",note:"polite ordering"},
+        {es:"Para mí, el pescado a la plancha.",en:"For me, the grilled fish.",note:"common shortcut"},
+        {es:"¿Viene con ensalada?",en:"Does it come with salad?",note:"checking what's included"},
+        {es:"Sin cebolla, por favor.",en:"Without onion, please.",note:"dietary modification"}
+      ]},
+      {t:"h2",v:"During the meal"},
+      {t:"words",items:[
+        {es:"¿Me puede traer agua?",en:"Can you bring me water?",note:"polite request"},
+        {es:"Está muy rico, gracias.",en:"It's very delicious, thank you.",note:"compliment the server"},
+        {es:"¿Me puede traer la cuenta?",en:"Can you bring the bill?",note:"asking to pay"},
+        {es:"¿Aceptan tarjeta?",en:"Do you accept card?",note:"always worth checking"}
+      ]},
+      {t:"callout",variant:"mx",title:"The NOMI connection",v:"When you're running your popup events, these phrases flip — you'll be on the receiving end. Understanding how diners talk helps you anticipate what they need. \"¿Viene con…?\", \"¿Qué es esto?\" — you'll hear these at every event."}
+    ],
+    exercises:[
+      {t:"translate",label:"You're at a restaurant in Guadalajara — translate your side of the conversation",items:[
+        {en:"Do you have a table for two?",ans:"¿Tienen mesa para dos?"},
+        {en:"What do you recommend?",ans:"¿Qué recomienda?"},
+        {en:"I'd like to try the mole, please.",ans:"Me gustaría probar el mole, por favor."},
+        {en:"Does it come with rice?",ans:"¿Viene con arroz?"},
+        {en:"It's delicious! Thank you.",ans:"¡Está muy rico! Gracias."},
+        {en:"Can you bring the bill, please?",ans:"¿Me puede traer la cuenta, por favor?"}
+      ]}
+    ],
+    chatPrompt:"Full restaurant roleplay with ChatGPT. You walk in, get a table, order a full meal (appetizer, main, dessert), ask questions about the menu, compliment the food, and pay. ChatGPT plays the waiter in Mexican Spanish. Make it as realistic as possible."
+  },
+  {
+    id:"w4-2", week:4, phase:"Integration", title:"Navigating the City", icon:"🗺️", tags:["conversation","directions","practical"],
+    blocks:[
+      {t:"h2",v:"Getting around Guadalajara without Google Maps"},
+      {t:"p",v:"Even with GPS, you'll need to talk to taxi drivers, ask locals for directions, and understand how people describe locations here. Mexican Spanish has its own very specific way of giving directions."},
+      {t:"h2",v:"Asking for directions"},
+      {t:"words",items:[
+        {es:"¿Sabe dónde está…?",en:"Do you know where… is?",note:"usted — polite, for strangers"},
+        {es:"¿Me puede indicar cómo llegar a…?",en:"Can you show me how to get to…?",note:"more formal request"},
+        {es:"¿Por dónde voy?",en:"Which way do I go?",note:"once you're already moving"}
+      ]},
+      {t:"h2",v:"Understanding directions — the Mexican way"},
+      {t:"p",v:"Mexicans rarely give compass directions. They use landmarks. \"Near the church\", \"next to the blue house\", \"past the market.\" This is actually easier once you know the neighbourhood."},
+      {t:"words",items:[
+        {es:"Está a la vuelta de la esquina.",en:"It's around the corner.",note:"very close"},
+        {es:"Sigue derecho / recto.",en:"Go straight.",note:"keep walking"},
+        {es:"Gira a la izquierda / derecha.",en:"Turn left / right.",note:"basic turn"},
+        {es:"Está justo a la izquierda.",en:"It's right on the left.",note:"\"justo\" = exactly"},
+        {es:"Cruza la calle.",en:"Cross the street.",note:"landmark instruction"},
+        {es:"Está cerca / lejos.",en:"It's nearby / far.",note:"relative distance"},
+        {es:"A dos cuadras.",en:"Two blocks away.",note:"\"cuadra\" = block"}
+      ]},
+      {t:"h2",v:"Talking to taxi drivers"},
+      {t:"words",items:[
+        {es:"Llévame a… por favor.",en:"Take me to… please.",note:"simple and direct"},
+        {es:"¿Conoce la calle…?",en:"Do you know… street?",note:"check before you get in"},
+        {es:"Puede dejarme aquí nomás.",en:"You can drop me off right here.",note:"asking to stop"},
+        {es:"¿Cuánto va a ser?",en:"How much is it going to be?",note:"ask price upfront"}
+      ]},
+      {t:"callout",variant:"mx",title:"Guadalajara-specific",v:"In Guadalajara, many locals still refer to locations by old neighbourhood names or nearby churches/parks. \"Cerca del Parque Insurgentes\", \"junto a la Catedral\". Learning these landmarks is worth more than memorising street names."}
+    ],
+    exercises:[
+      {t:"translate",label:"You're lost in Guadalajara — what do you say?",items:[
+        {en:"Do you know where the cathedral is?",ans:"¿Sabe dónde está la catedral?"},
+        {en:"How do I get to the market?",ans:"¿Me puede indicar cómo llego al mercado?"},
+        {en:"How far is it?",ans:"¿Qué tan lejos está?"},
+        {en:"Take me to Calle Libertad, please.",ans:"Llévame a la Calle Libertad, por favor."},
+        {en:"You can drop me off here.",ans:"Puede dejarme aquí nomás."}
+      ]}
+    ],
+    chatPrompt:"ChatGPT plays a local in Guadalajara giving you directions. You need to get to: (1) a specific restaurant, (2) the centro histórico, (3) a friend's apartment. Ask directions, confirm you understand, and practice listening comprehension. Ask for landmarks, not just streets."
+  },
+  {
+    id:"w4-3", week:4, phase:"Integration", title:"Social & Business Spanish", icon:"🤝", tags:["conversation","business","social","NOMI"],
+    blocks:[
+      {t:"h2",v:"Spanish for your actual life — hosting, networking, running NOMI"},
+      {t:"p",v:"This lesson is built around the conversations you actually have: talking to venue contacts about your popup, welcoming guests, chatting with suppliers at the market, and the social conversations that come with building a life in Mexico."},
+      {t:"h2",v:"Introducing yourself & NOMI"},
+      {t:"words",items:[
+        {es:"Me llamo Jessie y organizo eventos de cena.",en:"My name is Jessie and I organise dinner events.",note:"simple opener"},
+        {es:"NOMI es mi concepto de cena popup.",en:"NOMI is my popup dining concept.",note:"introducing the brand"},
+        {es:"Nos especializamos en cocina japonesa fusión.",en:"We specialise in Japanese fusion cuisine.",note:"what you do"},
+        {es:"¿Ha probado la cocina japonesa?",en:"Have you tried Japanese food?",note:"engaging a guest"}
+      ]},
+      {t:"h2",v:"Talking to venues & suppliers"},
+      {t:"words",items:[
+        {es:"Me interesa usar este espacio para un evento.",en:"I'm interested in using this space for an event.",note:"approaching a venue"},
+        {es:"¿Está disponible el [fecha]?",en:"Is it available on [date]?",note:"checking availability"},
+        {es:"¿Cuánto cobran por la noche?",en:"How much do you charge per night?",note:"pricing — direct is fine"},
+        {es:"¿Tiene la capacidad para 20 personas?",en:"Does it have capacity for 20 people?",note:"logistics question"},
+        {es:"¿Puede hacernos un precio especial?",en:"Can you give us a special price?",note:"negotiating — polite"}
+      ]},
+      {t:"h2",v:"Hosting & welcoming guests"},
+      {t:"words",items:[
+        {es:"¡Bienvenidos! Me alegra que estén aquí.",en:"Welcome! I'm glad you're here.",note:"subjunctive in action!"},
+        {es:"Esta noche vamos a probar…",en:"Tonight we're going to try…",note:"setting the menu"},
+        {es:"¿Tienen alguna alergia o restricción?",en:"Do you have any allergies or restrictions?",note:"essential safety question"},
+        {es:"El plato viene acompañado de sake.",en:"The dish is accompanied by sake.",note:"describing the pairing"}
+      ]},
+      {t:"h2",v:"General social conversation"},
+      {t:"words",items:[
+        {es:"¿Hace cuánto tiempo vives en Guadalajara?",en:"How long have you lived in Guadalajara?",note:"common question"},
+        {es:"Me encanta vivir aquí.",en:"I love living here.",note:"simple, genuine"},
+        {es:"¿En qué trabajas?",en:"What do you do for work?",note:"standard social question"},
+        {es:"Estoy en un proceso de cambio profesional.",en:"I'm in a professional transition.",note:"sabbatical — tactful version"}
+      ]},
+      {t:"callout",variant:"mx",title:"The Mexican networking style",v:"Mexicans build business relationships through personal connection first. Don't jump straight to logistics — ask about their family, compliment their space, share something personal. The deal comes after the relationship."}
+    ],
+    exercises:[
+      {t:"translate",label:"Real NOMI scenarios — translate your part",items:[
+        {en:"I'm interested in hosting an event here next month.",ans:"Me interesa organizar un evento aquí el próximo mes."},
+        {en:"Welcome! I'm so glad you could make it.",ans:"¡Bienvenido! Me alegra mucho que pudiera venir."},
+        {en:"Do you have any dietary restrictions?",ans:"¿Tiene alguna restricción dietética?"},
+        {en:"Tonight's menu features three courses paired with sake.",ans:"El menú de esta noche tiene tres platos acompañados de sake."},
+        {en:"How long have you lived in Mexico?",ans:"¿Hace cuánto tiempo vive en México?"}
+      ]}
+    ],
+    chatPrompt:"Two scenarios back to back. First: ChatGPT plays a venue owner — you're pitching NOMI for an upcoming event. Negotiate details in Spanish. Second: ChatGPT plays a guest at your popup — welcome them, explain the menu, make small talk. Keep it natural and warm."
+  },
+  {
+    id:"w4-4", week:4, phase:"Integration", title:"Month 1 Review", icon:"🏆", tags:["review","all tenses","consolidation"],
+    blocks:[
+      {t:"h2",v:"Everything you know — in one place"},
+      {t:"p",v:"Four weeks in. You now have present tense, two past tenses, future, an introduction to subjunctive, commands, and a solid bank of mexicanismos. This lesson consolidates it all with mixed exercises that mimic real conversation."},
+      {t:"h2",v:"Quick tense cheat sheet"},
+      {t:"words",items:[
+        {es:"Present: hablo, como, vivo",en:"Right now / habitual actions",note:"what's happening"},
+        {es:"Preterite: hablé, comí, viví",en:"Completed past actions",note:"snapshots"},
+        {es:"Imperfect: hablaba, comía, vivía",en:"Ongoing past / habits / descriptions",note:"film reel"},
+        {es:"Future: hablaré, comeré, viviré",en:"Predictions / distant plans",note:"formal future"},
+        {es:"Near future: voy a hablar",en:"Plans / intentions",note:"daily use"},
+        {es:"Subjunctive: hable, coma, viva",en:"Wishes / emotions / recommendations",note:"after \"que\""},
+        {es:"Commands: habla, come, vive",en:"Instructions / requests",note:"tú form"}
+      ]},
+      {t:"h2",v:"Common mistakes to watch for"},
+      {t:"words",items:[
+        {es:"ser vs estar",en:"Nationality/profession (ser) vs location/feelings (estar)",note:"still the #1 trap"},
+        {es:"preterite vs imperfect",en:"\"Ayer comí\" (ate) vs \"Comía todos los días\" (used to eat)",note:"snapshot vs habit"},
+        {es:"\"ir a\" vs future tense",en:"Plans (ir a) vs predictions (future)",note:"don't mix them up"},
+        {es:"Indicative vs subjunctive",en:"\"Sé que habla\" (fact) vs \"Quiero que hable\" (wish)",note:"two subjects = check for subjunctive"}
+      ]},
+      {t:"callout",variant:"mx",title:"Month 1 checkpoint",v:"By now you should be able to: order food, give basic directions, talk about your past and future plans, make requests, and hold a short conversation with a Mexican Spanish speaker. That's real. That's functional."}
+    ],
+    exercises:[
+      {t:"fill",label:"Mixed tenses — choose the right one and conjugate",items:[
+        {sub:"present",verb:"hablar",ans:"hablo",before:"Yo ",after:" español todos los días."},
+        {sub:"preterite",verb:"ir",ans:"fui",before:"Ayer yo ",after:" al mercado."},
+        {sub:"imperfect",verb:"vivir",ans:"vivía",before:"En Japón yo ",after:" en Tokio."},
+        {sub:"future",verb:"viajar",ans:"viajaré",before:"Algún día yo ",after:" por todo México."},
+        {sub:"subjunctive",verb:"probar",ans:"pruebe",before:"Espero que ella ",after:" el mole."},
+        {sub:"command",verb:"venir",ans:"Ven",before:"",after:" conmigo esta noche."}
+      ]},
+      {t:"translate",label:"Full sentences — use whatever tense fits",items:[
+        {en:"I used to eat sushi every day in Japan.",ans:"Comía sushi todos los días en Japón."},
+        {en:"Tomorrow we're going to go to the beach.",ans:"Mañana vamos a ir a la playa."},
+        {en:"I want you to try this dish.",ans:"Quiero que pruebes este plato."},
+        {en:"She lives in Guadalajara now.",ans:"Ahora vive en Guadalajara."},
+        {en:"Yesterday I spoke with the venue owner.",ans:"Ayer hablé con la dueña del lugar."}
+      ]}
+    ],
+    chatPrompt:"The big test: have a 10-minute free conversation with ChatGPT in Spanish. Talk about your life, your work, your food, your week — anything. Mix all tenses naturally. ChatGPT tracks which tenses you use and gives you a report at the end: what you nailed, what to revisit, and suggestions for month 2."
+  }
+];
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   APP ROOT
+───────────────────────────────────────────────────────────────────────────── */
+
+export default function App() {
+  const [lessons, setLessons] = useState(SEED);
+  const [activeId, setActiveId] = useState(SEED[0].id);
+  const [notes, setNotes] = useState({});
+  const [done, setDone] = useState(new Set());
+  const [sideOpen, setSideOpen] = useState(true);
+  const [addingOpen, setAddingOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const scrollRef = useRef(null);
+
+  // hydrate persisted state
+  useEffect(() => {
+    (async () => {
+      try { const r = await window.storage.get("sp-notes"); if(r) setNotes(JSON.parse(r.value)); } catch{}
+      try { const r = await window.storage.get("sp-done"); if(r) setDone(new Set(JSON.parse(r.value))); } catch{}
+      try { const r = await window.storage.get("sp-lessons"); if(r) setLessons(JSON.parse(r.value)); } catch{}
+    })();
+  }, []);
+
+  const persist = async (key, val) => { try { await window.storage.set(key, typeof val === "string" ? val : JSON.stringify(val)); } catch{} };
+
+  const saveNote = (id, text) => { const u={...notes,[id]:text}; setNotes(u); persist("sp-notes",u); };
+  const toggleDone = (id) => { const u=new Set(done); u.has(id)?u.delete(id):u.add(id); setDone(u); persist("sp-done",[...u]); };
+  const addLesson = (l) => { const u=[...lessons,l]; setLessons(u); persist("sp-lessons",u); setActiveId(l.id); setAddingOpen(false); };
+
+  const active = lessons.find(l=>l.id===activeId) || lessons[0];
+
+  // group sidebar by week
+  const byWeek = {};
+  lessons.forEach(l => { (byWeek[l.week] = byWeek[l.week] || []).push(l); });
+  const weeks = Object.keys(byWeek).map(Number).sort((a,b)=>a-b);
+
+  return (
+    <div style={{display:"flex", height:"100vh", background:"#0f0f0f", color:"#d4ccc0", fontFamily:"'Work Sans', sans-serif", overflow:"hidden"}}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;0,900;1,400&family=Work+Sans:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+        textarea::placeholder, input::placeholder { color: #4a4a4a; }
+        input:focus, textarea:focus { outline: none; border-color: rgba(247,201,72,0.5) !important; }
+      `}</style>
+
+      {/* ── SIDEBAR ── */}
+      <aside style={{
+        width: sideOpen ? 248 : 0, minWidth: sideOpen ? 248 : 0,
+        background:"#131313", borderRight:"1px solid #222",
+        display:"flex", flexDirection:"column", overflow:"hidden",
+        transition:"width 0.28s cubic-bezier(.4,0,.2,1), min-width 0.28s cubic-bezier(.4,0,.2,1)"
+      }}>
+        {sideOpen && <>
+          {/* brand */}
+          <div style={{padding:"1.35rem 1.1rem 0.9rem", flexShrink:0}}>
+            <div style={{display:"flex", alignItems:"center", gap:"0.5rem", marginBottom:"0.7rem"}}>
+              <span style={{fontSize:"1.15rem"}}>🇲🇽</span>
+              <div>
+                <div style={{color:"#E91E8C", fontSize:"0.62rem", textTransform:"uppercase", letterSpacing:"0.2em", fontWeight:700}}>Spanish Intensive</div>
+                <div style={{color:"#fff", fontFamily:"'Fraunces',serif", fontSize:"1rem", fontWeight:700, lineHeight:1.25}}>3-Month Program</div>
+              </div>
+            </div>
+            {/* progress */}
+            <div style={{height:3, background:"#222", borderRadius:2, marginTop:"0.6rem"}}>
+              <div style={{width:`${lessons.length?((done.size/lessons.length)*100):0}%`, height:"100%", background:"linear-gradient(90deg,#E91E8C,#F7C948)", borderRadius:2, transition:"width 0.4s"}}/>
+            </div>
+            <div style={{color:"#6b6b6b", fontSize:"0.68rem", marginTop:"0.25rem"}}>{done.size} / {lessons.length} lessons</div>
+          </div>
+
+          {/* nav */}
+          <nav style={{flex:1, overflowY:"auto", padding:"0.25rem 0"}}>
+            {weeks.map(wk => (
+              <div key={wk}>
+                <div style={{padding:"0.55rem 1.1rem 0.2rem", color:"#5c5c5c", fontSize:"0.63rem", textTransform:"uppercase", letterSpacing:"0.16em", fontWeight:700, userSelect:"none"}}>Week {wk}</div>
+                {byWeek[wk].map(l => {
+                  const active_ = l.id === activeId;
+                  return (
+                    <button key={l.id} onClick={()=>{ setActiveId(l.id); scrollRef.current && scrollRef.current.scrollTo(0,0); }}
+                      style={{
+                        width:"100%", textAlign:"left", background: active_ ? "rgba(233,30,140,0.1)" : "transparent",
+                        border:"none", borderLeft: active_ ? "2.5px solid #E91E8C" : "2.5px solid transparent",
+                        padding:"0.48rem 1.1rem", cursor:"pointer",
+                        display:"flex", alignItems:"center", gap:"0.55rem", transition:"background 0.15s"
+                      }}
+                      onMouseEnter={e=>{if(!active_)e.currentTarget.style.background="rgba(255,255,255,0.035)"}}
+                      onMouseLeave={e=>{if(!active_)e.currentTarget.style.background="transparent"}}
+                    >
+                      <span style={{fontSize:"0.9rem", flexShrink:0, width:20, textAlign:"center"}}>{done.has(l.id)?"✅":l.icon}</span>
+                      <span style={{color:active_?"#fff":"#8a8a8a", fontSize:"0.78rem", fontWeight:active_?600:400, lineHeight:1.35, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{l.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+
+          {/* add btn */}
+          <div style={{padding:"0.65rem 0.85rem", borderTop:"1px solid #222", flexShrink:0}}>
+            <button onClick={()=>setAddingOpen(true)} style={{width:"100%", background:"rgba(233,30,140,0.1)", border:"1px dashed rgba(233,30,140,0.35)", color:"#E91E8C", borderRadius:7, padding:"0.48rem", cursor:"pointer", fontSize:"0.76rem", fontWeight:600, transition:"background 0.15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="rgba(233,30,140,0.18)"}
+              onMouseLeave={e=>e.currentTarget.style.background="rgba(233,30,140,0.1)"}
+            >+ New Lesson</button>
+          </div>
+        </>}
+      </aside>
+
+      {/* ── MAIN CONTENT ── */}
+      <main style={{flex:1, display:"flex", flexDirection:"column", overflow:"hidden"}}>
+        {/* sticky top bar */}
+        <div style={{background:"rgba(15,15,15,0.88)", backdropFilter:"blur(12px)", borderBottom:"1px solid #222", padding:"0.55rem 1.15rem", display:"flex", alignItems:"center", justifyContent:"space-between", flexShrink:0, zIndex:5}}>
+          <div style={{display:"flex", alignItems:"center", gap:"0.6rem"}}>
+            <button onClick={()=>setSideOpen(s=>!s)} style={{background:"none", border:"none", color:"#6b6b6b", cursor:"pointer", fontSize:"1.2rem", padding:"0.1rem 0.2rem", lineHeight:1}}>☰</button>
+            <span style={{color:"#E91E8C", fontSize:"0.67rem", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:700}}>Wk {active.week}</span>
+            <span style={{color:"#333"}}>›</span>
+            <span style={{color:"#7a7a7a", fontSize:"0.78rem", fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{active.title}</span>
+          </div>
+          <button onClick={()=>toggleDone(active.id)} style={{
+            background: done.has(active.id) ? "rgba(149,198,35,0.15)" : "rgba(255,255,255,0.06)",
+            border:`1px solid ${done.has(active.id) ? "rgba(149,198,35,0.45)" : "rgba(255,255,255,0.18)"}`,
+            color: done.has(active.id) ? "#95C623" : "#8a8a8a",
+            borderRadius:16, padding:"0.28rem 0.8rem", cursor:"pointer", fontSize:"0.73rem", fontWeight:600, transition:"all 0.18s",
+            whiteSpace:"nowrap"
+          }}>{done.has(active.id) ? "✓ Done" : "Mark Done"}</button>
+        </div>
+
+        {/* scrollable lesson body */}
+        <div ref={scrollRef} style={{flex:1, overflowY:"auto", padding:"0"}}>
+          <div style={{maxWidth:740, margin:"0 auto", padding:"2.8rem 1.5rem 5rem"}}>
+
+            {/* lesson title */}
+            <div style={{marginBottom:"2.2rem"}}>
+              <div style={{display:"flex", alignItems:"center", gap:"0.7rem", marginBottom:"0.45rem"}}>
+                <span style={{fontSize:"2.2rem", lineHeight:1}}>{active.icon}</span>
+                <h1 style={{fontFamily:"'Fraunces',serif", fontSize:"2rem", fontWeight:900, color:"#fff", margin:0, lineHeight:1.15}}>{active.title}</h1>
+              </div>
+              <div style={{display:"flex", gap:"0.35rem", paddingLeft:"2.9rem", flexWrap:"wrap"}}>
+                {(active.tags||[]).map(t=><span key={t} style={{background:"rgba(255,255,255,0.06)", color:"#7a7a7a", fontSize:"0.67rem", padding:"0.18rem 0.5rem", borderRadius:8, fontWeight:500}}>{t}</span>)}
+              </div>
+            </div>
+
+            {/* explanation blocks */}
+            {(active.blocks||[]).map((b,i)=><ContentBlock key={i} b={b} />)}
+
+            {/* exercises */}
+            {active.exercises && active.exercises.length > 0 && <>
+              <Divider label="✏️ Exercises" />
+              {active.exercises.map((ex,i)=><ExBlock key={i} ex={ex} />)}
+            </>}
+
+            {/* chat prompt */}
+            {active.chatPrompt && <>
+              <Divider label="💬 Conversation Practice" />
+              <div style={{background:"linear-gradient(135deg, rgba(107,74,158,0.18), rgba(74,47,122,0.12))", border:"1px solid rgba(107,74,158,0.3)", borderRadius:12, padding:"1.35rem 1.4rem", marginBottom:"1.5rem"}}>
+                <p style={{color:"#b8b0a0", fontSize:"0.9rem", lineHeight:1.75, margin:"0 0 0.9rem"}}>{active.chatPrompt}</p>
+                <button onClick={()=>{ navigator.clipboard && navigator.clipboard.writeText(active.chatPrompt).then(()=>{setCopied(true); setTimeout(()=>setCopied(false),1400)}); }}
+                  style={{background:"rgba(255,255,255,0.08)", border:"1px solid rgba(255,255,255,0.18)", color:"#ccc", borderRadius:6, padding:"0.38rem 0.85rem", cursor:"pointer", fontSize:"0.75rem", fontWeight:600, transition:"background 0.15s"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="rgba(255,255,255,0.13)"}
+                  onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.08)"}
+                >{copied ? "✓ Copied!" : "Copy Prompt"}</button>
+              </div>
+            </>}
+
+            {/* notes */}
+            <Divider label="✍️ Your Notes" />
+            <textarea
+              value={notes[active.id]||""}
+              onChange={e=>saveNote(active.id, e.target.value)}
+              placeholder="Scribble notes, questions, things to remember… persists between sessions."
+              style={{width:"100%", minHeight:140, background:"rgba(247,201,72,0.05)", border:"2px solid rgba(247,201,72,0.18)", borderRadius:10, padding:"1rem 1.05rem", color:"#ccc", fontSize:"0.88rem", resize:"vertical", fontFamily:"'Work Sans',sans-serif", lineHeight:1.7}}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* ── ADD LESSON MODAL ── */}
+      {addingOpen && <AddModal onClose={()=>setAddingOpen(false)} onAdd={addLesson} maxWeek={Math.max(...weeks,0)} />}
+    </div>
+  );
+}
+
+/* ─── DIVIDER ─── */
+function Divider({label}) {
+  return (
+    <div style={{display:"flex", alignItems:"center", gap:"0.7rem", margin:"2.2rem 0 0.85rem"}}>
+      <div style={{height:1, flex:1, background:"#222"}}/>
+      <span style={{color:"#F7C948", fontSize:"0.66rem", textTransform:"uppercase", letterSpacing:"0.15em", fontWeight:700, whiteSpace:"nowrap"}}>{label}</span>
+      <div style={{height:1, flex:1, background:"#222"}}/>
+    </div>
+  );
+}
+
+/* ─── CONTENT BLOCKS ─── */
+function ContentBlock({b}) {
+  switch(b.t) {
+    case "h2": return <h2 style={{fontFamily:"'Fraunces',serif", color:"#F7C948", fontSize:"1.22rem", fontWeight:700, marginTop:"1.9rem", marginBottom:"0.5rem", lineHeight:1.3}}>{b.v}</h2>;
+    case "p":  return <p style={{color:"#a89e90", fontSize:"0.9rem", lineHeight:1.8, marginBottom:"0.9rem"}}>{b.v}</p>;
+
+    case "table": return (
+      <div style={{background:"rgba(255,255,255,0.025)", border:"1px solid #232323", borderRadius:10, padding:"1rem 1.1rem", marginBottom:"1.1rem"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", borderBottom:"1px solid #222", paddingBottom:"0.38rem", marginBottom:"0.55rem"}}>
+          <span style={{color:"#E91E8C", fontFamily:"'Fraunces',serif", fontSize:"1.05rem", fontWeight:700}}>{b.verb}</span>
+          <span style={{color:"#7a7a7a", fontSize:"0.76rem"}}>{b.eng} · {b.kind}</span>
+        </div>
+        {b.rows.map((r,i)=>(
+          <div key={i} style={{display:"grid", gridTemplateColumns:"80px 1fr 1fr", gap:"0.35rem", padding:"0.34rem 0", borderBottom:i<b.rows.length-1?"1px solid rgba(255,255,255,0.035)":"none", alignItems:"center"}}>
+            <span style={{color:"#8a8a8a", fontSize:"0.8rem", fontStyle:"italic"}}>{r[0]}</span>
+            <span style={{color:"#fff", fontWeight:600, fontSize:"0.9rem"}}>{r[1]}</span>
+            <span style={{color:"#8a8a8a", fontSize:"0.8rem"}}>{r[2]}</span>
+          </div>
+        ))}
+      </div>
+    );
+
+    case "callout": {
+      const mx = b.variant==="mx";
+      return (
+        <div style={{background: mx?"rgba(233,30,140,0.07)":"rgba(0,102,204,0.07)", border:`1px solid ${mx?"rgba(233,30,140,0.22)":"rgba(0,102,204,0.22)"}`, borderRadius:9, padding:"0.9rem 1rem", marginBottom:"1rem"}}>
+          <div style={{color:mx?"#E91E8C":"#5aadec", fontWeight:700, fontSize:"0.67rem", textTransform:"uppercase", letterSpacing:"0.07em", marginBottom:"0.28rem"}}>{mx?"🇲🇽 ":"💡 "}{b.title}</div>
+          <p style={{color:"#a89e90", fontSize:"0.82rem", lineHeight:1.65, margin:0}}>{b.v}</p>
+        </div>
+      );
+    }
+
+    case "words": return (
+      <div style={{marginBottom:"1rem"}}>
+        {b.items.map((w,i)=>(
+          <div key={i} style={{display:"flex", alignItems:"baseline", gap:"0.55rem", padding:"0.38rem 0", borderBottom:i<b.items.length-1?"1px solid rgba(255,255,255,0.035)":"none", flexWrap:"wrap"}}>
+            <span style={{color:"#fff", fontWeight:600, fontSize:"0.85rem", minWidth:148}}>{w.es}</span>
+            <span style={{color:"#7a7a7a", fontSize:"0.78rem", flex:1}}>{w.en}</span>
+            {w.note && <span style={{color:"rgba(247,201,72,0.42)", fontSize:"0.68rem", fontStyle:"italic"}}>{w.note}</span>}
+          </div>
+        ))}
+      </div>
+    );
+
+    default: return null;
+  }
+}
+
+/* ─── EXERCISE BLOCK ─── */
+function ExBlock({ex}) {
+  const [ans, setAns] = useState({});
+  const [res, setRes] = useState({});
+
+  const set = (i,v) => { setAns(p=>({...p,[i]:v})); setRes(p=>{const r={...p};delete r[i];return r;}); };
+  const checkAll = () => { const r={}; ex.items.forEach((it,i)=>{ if((ans[i]||"").trim()) r[i]=(ans[i]||"").trim().toLowerCase()===it.ans.trim().toLowerCase(); }); setRes(r); };
+  const revealAll = () => { const a={},r={}; ex.items.forEach((it,i)=>{a[i]=it.ans;r[i]=true;}); setAns(a);setRes(r); };
+  const reset = () => { setAns({}); setRes({}); };
+
+  const border = i => res[i]===true?"rgba(149,198,35,0.45)":res[i]===false?"rgba(255,107,53,0.45)":"rgba(255,255,255,0.12)";
+  const bg    = i => res[i]===true?"rgba(149,198,35,0.07)":res[i]===false?"rgba(255,107,53,0.07)":"rgba(255,255,255,0.02)";
+
+  return (
+    <div style={{background:"rgba(255,255,255,0.02)", border:"1px solid #222", borderRadius:10, padding:"1.2rem 1.25rem", marginBottom:"1rem"}}>
+      <div style={{color:"#7a7a7a", fontSize:"0.78rem", fontWeight:500, marginBottom:"0.85rem"}}>{ex.label}</div>
+
+      {ex.items.map((it,i) => {
+        /* fill-in-the-blank */
+        if(ex.t==="fill") return (
+          <div key={i} style={{background:bg(i), border:`1px solid ${border(i)}`, borderRadius:7, padding:"0.6rem 0.75rem", marginBottom:"0.42rem", transition:"all 0.18s"}}>
+            <div style={{color:"#9a9288", fontSize:"0.82rem", lineHeight:2.1, display:"flex", alignItems:"center", flexWrap:"wrap", gap:"0.15rem"}}>
+              <span style={{color:"#5c5c5c", fontSize:"0.66rem"}}>{i+1}.</span>
+              <span style={{color:"#6b6b6b", fontSize:"0.68rem", fontStyle:"italic"}}>[{it.sub} — {it.verb}]</span>
+              {it.before}
+              <input type="text" value={ans[i]||""} onChange={e=>set(i,e.target.value)}
+                style={{background:"rgba(255,255,255,0.05)", border:`1.5px solid ${border(i)}`, borderRadius:4, padding:"0.17rem 0.45rem", color:"#fff", fontSize:"0.85rem", fontWeight:600, width:108, textAlign:"center", fontFamily:"'Work Sans',sans-serif"}}/>
+              {it.after}
+            </div>
+            {res[i]===false && <div style={{color:"#FF6B35", fontSize:"0.68rem", marginTop:"0.2rem", paddingLeft:"1.1rem"}}>→ {it.ans}</div>}
+          </div>
+        );
+
+        /* translate */
+        if(ex.t==="translate") return (
+          <div key={i} style={{background:bg(i), border:`1px solid ${border(i)}`, borderRadius:7, padding:"0.6rem 0.75rem", marginBottom:"0.42rem", transition:"all 0.18s"}}>
+            <div style={{color:"#6a6a6a", fontSize:"0.76rem", marginBottom:"0.28rem"}}><span style={{color:"#5c5c5c", fontSize:"0.66rem"}}>{i+1}.</span> {it.en}</div>
+            <input type="text" value={ans[i]||""} onChange={e=>set(i,e.target.value)} placeholder="Escribe tu traducción…"
+              style={{width:"100%", background:"rgba(255,255,255,0.04)", border:`1.5px solid ${border(i)}`, borderRadius:4, padding:"0.38rem 0.6rem", color:"#fff", fontSize:"0.84rem", fontFamily:"'Work Sans',sans-serif"}}/>
+            {res[i]===false && <div style={{color:"#FF6B35", fontSize:"0.68rem", marginTop:"0.2rem"}}>→ {it.ans}</div>}
+          </div>
+        );
+
+        /* ser/estar picker */
+        if(ex.t==="ser_estar") {
+          const isSer = it.ans.match(/^(soy|eres|es|somos|son)$/i);
+          const picked = ans[i];
+          return (
+            <div key={i} style={{background:bg(i), border:`1px solid ${border(i)}`, borderRadius:7, padding:"0.6rem 0.75rem", marginBottom:"0.42rem", transition:"all 0.18s"}}>
+              <div style={{color:"#9a9288", fontSize:"0.82rem", display:"flex", alignItems:"center", gap:"0.3rem", flexWrap:"wrap", lineHeight:1.9}}>
+                <span style={{color:"#5c5c5c", fontSize:"0.66rem"}}>{i+1}.</span>
+                {it.before}
+                {["ser","estar"].map(choice => {
+                  const val = choice==="ser" ? (isSer?it.ans:"wrong") : (!isSer?it.ans:"wrong");
+                  const sel = picked===val;
+                  return (
+                    <button key={choice} onClick={()=>set(i,val)}
+                      style={{background:sel?(res[i]===true?"rgba(149,198,35,0.2)":res[i]===false?"rgba(255,107,53,0.2)":"rgba(233,30,140,0.2)"):"rgba(255,255,255,0.05)", border:`1px solid ${sel?"#E91E8C":"rgba(255,255,255,0.1)"}`, color:"#fff", borderRadius:5, padding:"0.15rem 0.52rem", cursor:"pointer", fontSize:"0.76rem", fontWeight:600, transition:"all 0.13s"}}>
+                      {choice}
+                    </button>
+                  );
+                })}
+                {it.after}
+              </div>
+              {res[i]===true  && <div style={{color:"#95C623", fontSize:"0.7rem", marginTop:"0.25rem", paddingLeft:"1rem"}}>✓ {it.why}</div>}
+              {res[i]===false && <div style={{color:"#FF6B35", fontSize:"0.7rem", marginTop:"0.25rem", paddingLeft:"1rem"}}>→ {it.ans} — {it.why}</div>}
+            </div>
+          );
+        }
+        return null;
+      })}
+
+      <div style={{display:"flex", gap:"0.45rem", marginTop:"0.75rem", flexWrap:"wrap"}}>
+        <Btn primary onClick={checkAll}>Check</Btn>
+        <Btn onClick={revealAll}>Show Answers</Btn>
+        <Btn muted onClick={reset}>Reset</Btn>
+      </div>
+    </div>
+  );
+}
+
+/* ─── SMALL BUTTON ─── */
+function Btn({children, onClick, primary, muted}) {
+  return (
+    <button onClick={onClick} style={{
+      background: primary?"#E91E8C":muted?"transparent":"rgba(255,255,255,0.07)",
+      border:`1px solid ${primary?"transparent":muted?"rgba(255,255,255,0.1)":"rgba(255,255,255,0.14)"}`,
+      color: primary?"#fff":muted?"#6b6b6b":"#9a9a9a",
+      borderRadius:6, padding:"0.38rem 0.85rem", cursor:"pointer", fontSize:"0.74rem", fontWeight:primary?700:500, transition:"all 0.15s"
+    }}
+      onMouseEnter={e=>e.currentTarget.style.opacity="0.82"}
+      onMouseLeave={e=>e.currentTarget.style.opacity="1"}
+    >{children}</button>
+  );
+}
+
+/* ─── ADD LESSON MODAL ─── */
+function AddModal({onClose, onAdd, maxWeek}) {
+  const [title, setTitle] = useState("");
+  const [week, setWeek] = useState(maxWeek || 1);
+  const [icon, setIcon] = useState("📖");
+  const [tags, setTags] = useState("");
+  const [prompt, setPrompt] = useState("");
+
+  const icons = ["📖","⚡","🔀","🔄","🛒","⏪","🌊","🔮","👉","🌀","🇲🇽","📝","💬","🎯","⭐","🏆"];
+  const weekOptions = [...Array(maxWeek+2).keys()].slice(1);
+
+  return (
+    <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", backdropFilter:"blur(5px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem"}}>
+      <div style={{background:"#181818", border:"1px solid #2a2a2a", borderRadius:14, padding:"1.8rem", width:"100%", maxWidth:460, maxHeight:"88vh", overflowY:"auto"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.4rem"}}>
+          <h2 style={{fontFamily:"'Fraunces',serif", color:"#fff", fontSize:"1.3rem", fontWeight:700, margin:0}}>Add a Lesson</h2>
+          <button onClick={onClose} style={{background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:"1.4rem", lineHeight:1, padding:"0.1rem"}}>×</button>
+        </div>
+
+        <Label>Title</Label>
+        <input type="text" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Stem-changing verbs"
+          style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"0.9rem"}}/>
+
+        <Label>Week</Label>
+        <div style={{display:"flex", gap:"0.3rem", flexWrap:"wrap", marginBottom:"0.9rem"}}>
+          {weekOptions.map(w => (
+            <button key={w} onClick={()=>setWeek(w)} style={{background:week===w?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${week===w?"#E91E8C":"#2a2a2a"}`, color:week===w?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.25rem 0.6rem", cursor:"pointer", fontSize:"0.76rem", fontWeight:600}}>
+              Wk {w}
+            </button>
+          ))}
+        </div>
+
+        <Label>Icon</Label>
+        <div style={{display:"flex", gap:"0.25rem", flexWrap:"wrap", marginBottom:"0.9rem"}}>
+          {icons.map(ic => (
+            <button key={ic} onClick={()=>setIcon(ic)} style={{background:icon===ic?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${icon===ic?"#E91E8C":"#2a2a2a"}`, borderRadius:6, padding:"0.22rem 0.38rem", cursor:"pointer", fontSize:"1rem"}}>
+              {ic}
+            </button>
+          ))}
+        </div>
+
+        <Label>Tags (comma-separated)</Label>
+        <input type="text" value={tags} onChange={e=>setTags(e.target.value)} placeholder="e.g. grammar, verbs, past tense"
+          style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"0.9rem"}}/>
+
+        <Label>ChatGPT conversation prompt (optional)</Label>
+        <textarea value={prompt} onChange={e=>setPrompt(e.target.value)} placeholder="A practice scenario to paste into ChatGPT…"
+          style={{width:"100%", minHeight:75, background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.84rem", resize:"vertical", fontFamily:"'Work Sans',sans-serif", marginBottom:"1.1rem"}}/>
+
+        <div style={{display:"flex", gap:"0.5rem"}}>
+          <button onClick={()=>{
+            if(!title.trim()) return;
+            onAdd({ id:`c-${Date.now()}`, week, phase:"Custom", title:title.trim(), icon, tags:tags.split(",").map(t=>t.trim()).filter(Boolean),
+              blocks:[{t:"h2",v:"Lesson notes"},{t:"p",v:"Use the notes section below to write explanations, vocabulary lists, and practice ideas as you work through this topic."}],
+              exercises:[], chatPrompt:prompt.trim()||null });
+          }} style={{background:"#E91E8C", border:"none", color:"#fff", borderRadius:7, padding:"0.52rem 1.3rem", cursor:"pointer", fontSize:"0.82rem", fontWeight:700, flex:1}}>
+            Create Lesson
+          </button>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.07)", border:"1px solid #2a2a2a", color:"#8a8a8a", borderRadius:7, padding:"0.52rem 0.9rem", cursor:"pointer", fontSize:"0.82rem"}}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Label({children}) {
+  return <div style={{color:"#6b6b6b", fontSize:"0.67rem", textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:600, marginBottom:"0.25rem"}}>{children}</div>;
+}
+
+    // Render the app
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
