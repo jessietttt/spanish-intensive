@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spanish Intensive</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -15,14 +12,7 @@
   <div id="root"></div>
   
   <script type="text/babel">
-import { useState, useEffect, useRef } from "react";
-
-/* ─────────────────────────────────────────────────────────────────────────────
-   SEED DATA
-   Each lesson: blocks (explanation content), exercises (inline drills),
-   chatPrompt (copy-to-ChatGPT scenario). Add more via the "+ New Lesson" UI.
-───────────────────────────────────────────────────────────────────────────── */
-
+    const { useState, useEffect, useRef } = React;
 const SEED = [
   {
     id:"w1-1", week:1, phase:"Foundation", title:"Regular Present Tense", icon:"📖", tags:["grammar","verbs"],
@@ -599,7 +589,6 @@ const SEED = [
    APP ROOT
 ───────────────────────────────────────────────────────────────────────────── */
 
-export default function App() {
   const [lessons, setLessons] = useState(SEED);
   const [activeId, setActiveId] = useState(SEED[0].id);
   const [notes, setNotes] = useState({});
@@ -1003,7 +992,7 @@ function Label({children}) {
   return <div style={{color:"#6b6b6b", fontSize:"0.67rem", textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:600, marginBottom:"0.25rem"}}>{children}</div>;
 }
 
-    // Render the app
+    // Render
     const root = ReactDOM.createRoot(document.getElementById('root'));
     root.render(<App />);
   </script>
