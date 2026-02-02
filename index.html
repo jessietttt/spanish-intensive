@@ -606,6 +606,163 @@ const SEED = [
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   RICH TEXT EDITOR
+───────────────────────────────────────────────────────────────────────────── */
+
+function RichTextEditor({value, onChange, placeholder}) {
+  const editorRef = useRef(null);
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value;
+    }
+  }, [value]);
+
+  const execCommand = (command, value = null) => {
+    document.execCommand(command, false, value);
+    editorRef.current?.focus();
+  };
+
+  const handleInput = () => {
+    onChange(editorRef.current?.innerHTML || "");
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData('text/plain');
+    document.execCommand('insertText', false, text);
+  };
+
+  return (
+    <div style={{marginBottom:"1.5rem"}}>
+      {/* Toolbar */}
+      <div style={{display:"flex", gap:"0.3rem", padding:"0.5rem", background:"rgba(247,201,72,0.08)", border:"2px solid rgba(247,201,72,0.18)", borderBottom:"1px solid rgba(247,201,72,0.18)", borderRadius:"10px 10px 0 0", flexWrap:"wrap"}}>
+        <ToolbarButton onClick={() => execCommand('bold')} title="Bold (Ctrl+B)">
+          <strong>B</strong>
+        </ToolbarButton>
+        <ToolbarButton onClick={() => execCommand('italic')} title="Italic (Ctrl+I)">
+          <em>I</em>
+        </ToolbarButton>
+        <ToolbarButton onClick={() => execCommand('underline')} title="Underline (Ctrl+U)">
+          <u>U</u>
+        </ToolbarButton>
+        <div style={{width:"1px", background:"rgba(247,201,72,0.2)", margin:"0 0.2rem"}}/>
+        <ToolbarButton onClick={() => execCommand('insertUnorderedList')} title="Bullet List">
+          ●
+        </ToolbarButton>
+        <ToolbarButton onClick={() => execCommand('insertOrderedList')} title="Numbered List">
+          1.
+        </ToolbarButton>
+        <div style={{width:"1px", background:"rgba(247,201,72,0.2)", margin:"0 0.2rem"}}/>
+        <ToolbarButton onClick={() => execCommand('formatBlock', 'h3')} title="Heading">
+          H
+        </ToolbarButton>
+        <ToolbarButton onClick={() => execCommand('formatBlock', 'p')} title="Paragraph">
+          P
+        </ToolbarButton>
+        <div style={{width:"1px", background:"rgba(247,201,72,0.2)", margin:"0 0.2rem"}}/>
+        <ToolbarButton onClick={() => execCommand('removeFormat')} title="Clear Formatting">
+          ✕
+        </ToolbarButton>
+      </div>
+
+      {/* Editor */}
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={handleInput}
+        onPaste={handlePaste}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        data-placeholder={placeholder}
+        style={{
+          width:"100%", 
+          minHeight:140, 
+          background:"rgba(247,201,72,0.05)", 
+          border:`2px solid ${focused ? "rgba(247,201,72,0.35)" : "rgba(247,201,72,0.18)"}`, 
+          borderTop:"none",
+          borderRadius:"0 0 10px 10px", 
+          padding:"1rem 1.05rem", 
+          color:"#ccc", 
+          fontSize:"0.88rem", 
+          fontFamily:"'Work Sans',sans-serif", 
+          lineHeight:1.7,
+          outline:"none",
+          overflowY:"auto",
+          transition:"border-color 0.2s"
+        }}
+      />
+      <style>{`
+        [contenteditable][data-placeholder]:empty:before {
+          content: attr(data-placeholder);
+          color: rgba(247,201,72,0.3);
+          font-style: italic;
+        }
+        [contenteditable] h3 {
+          color: #F7C948;
+          font-size: 1.1rem;
+          font-weight: 700;
+          margin: 1rem 0 0.5rem;
+          font-family: 'Fraunces', serif;
+        }
+        [contenteditable] h3:first-child {
+          margin-top: 0;
+        }
+        [contenteditable] ul, [contenteditable] ol {
+          margin: 0.5rem 0;
+          padding-left: 1.5rem;
+        }
+        [contenteditable] li {
+          margin: 0.3rem 0;
+        }
+        [contenteditable] strong {
+          color: #fff;
+          font-weight: 700;
+        }
+        [contenteditable] em {
+          color: #F7C948;
+        }
+        [contenteditable] u {
+          text-decoration-color: #F7C948;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function ToolbarButton({onClick, children, title}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        background:"rgba(255,255,255,0.08)",
+        border:"1px solid rgba(247,201,72,0.2)",
+        color:"#F7C948",
+        borderRadius:4,
+        padding:"0.25rem 0.5rem",
+        cursor:"pointer",
+        fontSize:"0.85rem",
+        fontWeight:600,
+        minWidth:"28px",
+        transition:"all 0.15s"
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = "rgba(247,201,72,0.15)";
+        e.currentTarget.style.borderColor = "rgba(247,201,72,0.4)";
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = "rgba(255,255,255,0.08)";
+        e.currentTarget.style.borderColor = "rgba(247,201,72,0.2)";
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    APP ROOT
 ───────────────────────────────────────────────────────────────────────────── */
 
@@ -773,11 +930,10 @@ function App() {
 
             {/* notes */}
             <Divider label="✍️ Your Notes" />
-            <textarea
+            <RichTextEditor 
               value={notes[active.id]||""}
-              onChange={e=>saveNote(active.id, e.target.value)}
+              onChange={(val)=>saveNote(active.id, val)}
               placeholder="Scribble notes, questions, things to remember… persists between sessions."
-              style={{width:"100%", minHeight:140, background:"rgba(247,201,72,0.05)", border:"2px solid rgba(247,201,72,0.18)", borderRadius:10, padding:"1rem 1.05rem", color:"#ccc", fontSize:"0.88rem", resize:"vertical", fontFamily:"'Work Sans',sans-serif", lineHeight:1.7}}
             />
           </div>
         </div>
