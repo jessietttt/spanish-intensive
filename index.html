@@ -782,6 +782,7 @@ function App() {
   const [done, setDone] = useState(new Set());
   const [sideOpen, setSideOpen] = useState(true);
   const [addingOpen, setAddingOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState(null);
   const [copied, setCopied] = useState(false);
   const scrollRef = useRef(null);
 
@@ -794,11 +795,38 @@ function App() {
     })();
   }, []);
 
-  const persist = async (key, val) => { try { await window.storage.set(key, typeof val === "string" ? val : JSON.stringify(val)); } catch{} };
+  const persist = async (key, val) => { try { await window.storage.set(key, typeof val === "string" ? val : JSON.stringify(val)); } catch(e){ console.error("Storage error:", e); } };
 
   const saveNote = (id, text) => { const u={...notes,[id]:text}; setNotes(u); persist("sp-notes",u); };
   const toggleDone = (id) => { const u=new Set(done); u.has(id)?u.delete(id):u.add(id); setDone(u); persist("sp-done",[...u]); };
-  const addLesson = (l) => { const u=[...lessons,l]; setLessons(u); persist("sp-lessons",u); setActiveId(l.id); setAddingOpen(false); };
+  
+  const addLesson = (l) => { 
+    // Create stable ID from title slug
+    const slug = l.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const stableId = `custom-${slug}`;
+    const newLesson = {...l, id: stableId};
+    const u=[...lessons, newLesson]; 
+    setLessons(u); 
+    persist("sp-lessons",u); 
+    setActiveId(stableId); 
+    setAddingOpen(false); 
+  };
+  
+  const updateLesson = (id, changes) => {
+    const u = lessons.map(l => l.id === id ? {...l, ...changes} : l);
+    setLessons(u);
+    persist("sp-lessons", u);
+    setEditingLesson(null);
+  };
+  
+  const deleteLesson = (id) => {
+    if (!confirm("Delete this lesson? This cannot be undone.")) return;
+    const u = lessons.filter(l => l.id !== id);
+    setLessons(u);
+    persist("sp-lessons", u);
+    if (activeId === id) setActiveId(u[0]?.id || SEED[0].id);
+    setEditingLesson(null);
+  };
 
   const active = lessons.find(l=>l.id===activeId) || lessons[0];
 
@@ -851,20 +879,29 @@ function App() {
                 <div style={{padding:"0.55rem 1.1rem 0.2rem", color:"#5c5c5c", fontSize:"0.63rem", textTransform:"uppercase", letterSpacing:"0.16em", fontWeight:700, userSelect:"none"}}>Week {wk}</div>
                 {byWeek[wk].map(l => {
                   const active_ = l.id === activeId;
+                  const isCustom = l.id.startsWith('custom-');
                   return (
-                    <button key={l.id} onClick={()=>{ setActiveId(l.id); scrollRef.current && scrollRef.current.scrollTo(0,0); }}
-                      style={{
-                        width:"100%", textAlign:"left", background: active_ ? "rgba(233,30,140,0.1)" : "transparent",
-                        border:"none", borderLeft: active_ ? "2.5px solid #E91E8C" : "2.5px solid transparent",
-                        padding:"0.48rem 1.1rem", cursor:"pointer",
-                        display:"flex", alignItems:"center", gap:"0.55rem", transition:"background 0.15s"
-                      }}
-                      onMouseEnter={e=>{if(!active_)e.currentTarget.style.background="rgba(255,255,255,0.035)"}}
-                      onMouseLeave={e=>{if(!active_)e.currentTarget.style.background="transparent"}}
-                    >
-                      <span style={{fontSize:"0.9rem", flexShrink:0, width:20, textAlign:"center"}}>{done.has(l.id)?"✅":l.icon}</span>
-                      <span style={{color:active_?"#fff":"#8a8a8a", fontSize:"0.78rem", fontWeight:active_?600:400, lineHeight:1.35, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{l.title}</span>
-                    </button>
+                    <div key={l.id} style={{display:"flex", alignItems:"center", position:"relative", background: active_ ? "rgba(233,30,140,0.1)" : "transparent", borderLeft: active_ ? "2.5px solid #E91E8C" : "2.5px solid transparent"}}>
+                      <button onClick={()=>{ setActiveId(l.id); scrollRef.current && scrollRef.current.scrollTo(0,0); }}
+                        style={{
+                          flex:1, textAlign:"left", background: "transparent",
+                          border:"none",
+                          padding:"0.48rem 1.1rem", cursor:"pointer",
+                          display:"flex", alignItems:"center", gap:"0.55rem", transition:"background 0.15s"
+                        }}
+                        onMouseEnter={e=>{if(!active_)e.currentTarget.parentElement.style.background="rgba(255,255,255,0.035)"}}
+                        onMouseLeave={e=>{if(!active_)e.currentTarget.parentElement.style.background="transparent"}}
+                      >
+                        <span style={{fontSize:"0.9rem", flexShrink:0, width:20, textAlign:"center"}}>{done.has(l.id)?"✅":l.icon}</span>
+                        <span style={{color:active_?"#fff":"#8a8a8a", fontSize:"0.78rem", fontWeight:active_?600:400, lineHeight:1.35, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1}}>{l.title}</span>
+                      </button>
+                      {isCustom && (
+                        <button onClick={(e)=>{e.stopPropagation(); setEditingLesson(l);}} 
+                          style={{background:"none", border:"none", color:"#5a5a5a", cursor:"pointer", fontSize:"0.85rem", padding:"0.25rem 0.5rem", marginRight:"0.3rem"}}
+                          title="Edit lesson"
+                        >⚙</button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -950,6 +987,9 @@ function App() {
 
       {/* ── ADD LESSON MODAL ── */}
       {addingOpen && <AddModal onClose={()=>setAddingOpen(false)} onAdd={addLesson} maxWeek={Math.max(...weeks,0)} />}
+      
+      {/* ── EDIT LESSON MODAL ── */}
+      {editingLesson && <EditModal lesson={editingLesson} onClose={()=>setEditingLesson(null)} onUpdate={updateLesson} onDelete={deleteLesson} maxWeek={Math.max(...weeks,0)} />}
     </div>
   );
 }
@@ -1174,7 +1214,7 @@ function AddModal({onClose, onAdd, maxWeek}) {
         <div style={{display:"flex", gap:"0.5rem"}}>
           <button onClick={()=>{
             if(!title.trim()) return;
-            onAdd({ id:`c-${Date.now()}`, week, phase:"Custom", title:title.trim(), icon, tags:tags.split(",").map(t=>t.trim()).filter(Boolean), type,
+            onAdd({ week, phase:"Custom", title:title.trim(), icon, tags:tags.split(",").map(t=>t.trim()).filter(Boolean), type,
               blocks:[{t:"h2",v:type==="reference"?"Quick reference":"Lesson notes"},{t:"p",v:type==="reference"?"Add conjugation tables, vocabulary lists, or other reference material here.":"Use the notes section below to write explanations, vocabulary lists, and practice ideas as you work through this topic."}],
               exercises:[], chatPrompt:type==="lesson"?(prompt.trim()||null):null });
           }} style={{background:"#E91E8C", border:"none", color:"#fff", borderRadius:7, padding:"0.52rem 1.3rem", cursor:"pointer", fontSize:"0.82rem", fontWeight:700, flex:1}}>
@@ -1189,6 +1229,85 @@ function AddModal({onClose, onAdd, maxWeek}) {
 
 function Label({children}) {
   return <div style={{color:"#6b6b6b", fontSize:"0.67rem", textTransform:"uppercase", letterSpacing:"0.1em", fontWeight:600, marginBottom:"0.25rem"}}>{children}</div>;
+}
+
+/* ─── EDIT LESSON MODAL ─── */
+function EditModal({lesson, onClose, onUpdate, onDelete, maxWeek}) {
+  const [title, setTitle] = useState(lesson.title);
+  const [week, setWeek] = useState(lesson.week);
+  const [icon, setIcon] = useState(lesson.icon);
+  const [tags, setTags] = useState((lesson.tags || []).join(", "));
+  const [type, setType] = useState(lesson.type || "lesson");
+
+  const icons = ["📖","⚡","🔀","🔄","🛒","⏪","🌊","🔮","👉","🌀","🇲🇽","📝","💬","🎯","⭐","🏆","📚"];
+  const weekOptions = [...Array(maxWeek+2).keys()].slice(1);
+
+  return (
+    <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.65)", backdropFilter:"blur(5px)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:"1rem"}}>
+      <div style={{background:"#181818", border:"1px solid #2a2a2a", borderRadius:14, padding:"1.8rem", width:"100%", maxWidth:460, maxHeight:"88vh", overflowY:"auto"}}>
+        <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"1.4rem"}}>
+          <h2 style={{fontFamily:"'Fraunces',serif", color:"#fff", fontSize:"1.3rem", fontWeight:700, margin:0}}>Edit Lesson</h2>
+          <button onClick={onClose} style={{background:"none", border:"none", color:"#555", cursor:"pointer", fontSize:"1.4rem", lineHeight:1, padding:"0.1rem"}}>×</button>
+        </div>
+
+        <Label>Type</Label>
+        <div style={{display:"flex", gap:"0.5rem", marginBottom:"0.9rem"}}>
+          <button onClick={()=>setType("lesson")} style={{background:type==="lesson"?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${type==="lesson"?"#E91E8C":"#2a2a2a"}`, color:type==="lesson"?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.35rem 0.8rem", cursor:"pointer", fontSize:"0.78rem", fontWeight:600, flex:1}}>
+            📖 Lesson
+          </button>
+          <button onClick={()=>setType("reference")} style={{background:type==="reference"?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${type==="reference"?"#E91E8C":"#2a2a2a"}`, color:type==="reference"?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.35rem 0.8rem", cursor:"pointer", fontSize:"0.78rem", fontWeight:600, flex:1}}>
+            📚 Reference
+          </button>
+        </div>
+
+        <Label>Title</Label>
+        <input type="text" value={title} onChange={e=>setTitle(e.target.value)}
+          style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"0.9rem"}}/>
+
+        <Label>Week</Label>
+        <div style={{display:"flex", gap:"0.3rem", flexWrap:"wrap", marginBottom:"0.9rem"}}>
+          {weekOptions.map(w => (
+            <button key={w} onClick={()=>setWeek(w)} style={{background:week===w?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${week===w?"#E91E8C":"#2a2a2a"}`, color:week===w?"#E91E8C":"#8a8a8a", borderRadius:6, padding:"0.25rem 0.6rem", cursor:"pointer", fontSize:"0.76rem", fontWeight:600}}>
+              Wk {w}
+            </button>
+          ))}
+        </div>
+
+        <Label>Icon</Label>
+        <div style={{display:"flex", gap:"0.25rem", flexWrap:"wrap", marginBottom:"0.9rem"}}>
+          {icons.map(ic => (
+            <button key={ic} onClick={()=>setIcon(ic)} style={{background:icon===ic?"rgba(233,30,140,0.18)":"rgba(255,255,255,0.05)", border:`1px solid ${icon===ic?"#E91E8C":"#2a2a2a"}`, borderRadius:6, padding:"0.22rem 0.38rem", cursor:"pointer", fontSize:"1rem"}}>
+              {ic}
+            </button>
+          ))}
+        </div>
+
+        <Label>Tags (comma-separated)</Label>
+        <input type="text" value={tags} onChange={e=>setTags(e.target.value)}
+          style={{width:"100%", background:"rgba(255,255,255,0.05)", border:"1px solid #2a2a2a", borderRadius:7, padding:"0.52rem 0.65rem", color:"#fff", fontSize:"0.85rem", fontFamily:"'Work Sans',sans-serif", marginBottom:"1.1rem"}}/>
+
+        <div style={{display:"flex", gap:"0.5rem", marginBottom:"0.7rem"}}>
+          <button onClick={()=>{
+            if(!title.trim()) return;
+            onUpdate(lesson.id, {
+              title: title.trim(),
+              week,
+              icon,
+              tags: tags.split(",").map(t=>t.trim()).filter(Boolean),
+              type
+            });
+          }} style={{background:"#E91E8C", border:"none", color:"#fff", borderRadius:7, padding:"0.52rem 1.3rem", cursor:"pointer", fontSize:"0.82rem", fontWeight:700, flex:1}}>
+            Save Changes
+          </button>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.07)", border:"1px solid #2a2a2a", color:"#8a8a8a", borderRadius:7, padding:"0.52rem 0.9rem", cursor:"pointer", fontSize:"0.82rem"}}>Cancel</button>
+        </div>
+
+        <button onClick={()=>onDelete(lesson.id)} style={{width:"100%", background:"rgba(255,53,107,0.1)", border:"1px solid rgba(255,53,107,0.3)", color:"#FF356B", borderRadius:7, padding:"0.45rem", cursor:"pointer", fontSize:"0.75rem", fontWeight:600}}>
+          Delete Lesson
+        </button>
+      </div>
+    </div>
+  );
 }
 
 // Render
