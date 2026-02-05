@@ -606,6 +606,60 @@ const SEED = [
 ];
 
 /* ─────────────────────────────────────────────────────────────────────────────
+   NOTES EDITOR WITH SAVE BUTTON
+───────────────────────────────────────────────────────────────────────────── */
+
+function NotesEditor({value, onSave, lessonId}) {
+  const [draft, setDraft] = useState(value);
+  const [saved, setSaved] = useState(true);
+
+  useEffect(() => {
+    setDraft(value);
+    setSaved(true);
+  }, [lessonId, value]);
+
+  const handleSave = () => {
+    onSave(draft);
+    setSaved(true);
+    console.log('Notes saved for lesson:', lessonId);
+  };
+
+  const handleChange = (val) => {
+    setDraft(val);
+    setSaved(false);
+  };
+
+  return (
+    <div style={{marginBottom:"1.5rem"}}>
+      <RichTextEditor 
+        value={draft}
+        onChange={handleChange}
+        placeholder="Scribble notes, questions, things to remember… persists between sessions."
+      />
+      <button 
+        onClick={handleSave}
+        disabled={saved}
+        style={{
+          background: saved ? "rgba(149,198,35,0.2)" : "#E91E8C",
+          border: "none",
+          color: saved ? "#95C623" : "#fff",
+          borderRadius: 7,
+          padding: "0.55rem 1.2rem",
+          cursor: saved ? "default" : "pointer",
+          fontSize: "0.82rem",
+          fontWeight: 700,
+          marginTop: "0.5rem",
+          opacity: saved ? 0.7 : 1,
+          transition: "all 0.2s"
+        }}
+      >
+        {saved ? "✓ Saved" : "Save Notes"}
+      </button>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
    RICH TEXT EDITOR
 ───────────────────────────────────────────────────────────────────────────── */
 
@@ -976,10 +1030,10 @@ function App() {
 
             {/* notes */}
             <Divider label="✍️ Your Notes" />
-            <RichTextEditor 
+            <NotesEditor 
               value={notes[active.id]||""}
-              onChange={(val)=>saveNote(active.id, val)}
-              placeholder="Scribble notes, questions, things to remember… persists between sessions."
+              onSave={(val)=>saveNote(active.id, val)}
+              lessonId={active.id}
             />
           </div>
         </div>
